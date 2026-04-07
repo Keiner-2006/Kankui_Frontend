@@ -9,7 +9,7 @@ import 'lessons_screen.dart';
 import 'scanner_screen.dart';
 import 'ranking_screen.dart';
 import 'profile_screen.dart';
-
+import 'login_screen.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
