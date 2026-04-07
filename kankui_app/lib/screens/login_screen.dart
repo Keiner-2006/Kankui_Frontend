@@ -109,16 +109,28 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Tarjeta Docente
+              // Tarjeta Docente ← ahora navega al Portal Docente
               _RoleCard(
                 icon: Icons.person_pin_outlined,
                 title: 'Soy Docente',
                 subtitle: 'Bastón de Autoridad',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Módulo docente próximamente'),
-                      backgroundColor: LoginColors.brown,
+                  Navigator.push(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (_, animation, __) =>
+                          const _TeacherLoginForm(),
+                      transitionsBuilder: (_, animation, __, child) =>
+                          SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(1, 0),
+                          end: Offset.zero,
+                        ).animate(CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeInOut,
+                        )),
+                        child: child,
+                      ),
                     ),
                   );
                 },
@@ -254,14 +266,10 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
     }
 
     setState(() => _isLoading = true);
-    
-    // Simular proceso de login
     await Future.delayed(const Duration(milliseconds: 1500));
-    
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    // ✅ LOGIN EXITOSO - Navegar al HomeScreen
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -277,9 +285,9 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
       body: SafeArea(
         child: Column(
           children: [
-            // Botón volver
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
@@ -300,15 +308,12 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                 ),
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-
-                    // Avatar dorado
                     Container(
                       width: 76,
                       height: 76,
@@ -329,9 +334,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         size: 40,
                       ),
                     ),
-
                     const SizedBox(height: 18),
-
                     const Text(
                       'Entrada Estudiante',
                       style: TextStyle(
@@ -348,10 +351,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         color: LoginColors.textMuted,
                       ),
                     ),
-
                     const SizedBox(height: 36),
-
-                    // Campo ID
                     _InputField(
                       label: 'ID Estudiantil',
                       hint: 'Ej: 1234567890',
@@ -361,15 +361,9 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         FilteringTextInputFormatter.digitsOnly,
                       ],
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Campo PIN
                     _PinField(controller: _pinController),
-
                     const SizedBox(height: 36),
-
-                    // Botón entrar
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -405,10 +399,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                               ),
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // Hint
                     const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -423,6 +414,300 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// FORMULARIO DE LOGIN DOCENTE
+// ─────────────────────────────────────────────
+class _TeacherLoginForm extends StatefulWidget {
+  const _TeacherLoginForm();
+
+  @override
+  State<_TeacherLoginForm> createState() => __TeacherLoginFormState();
+}
+
+class __TeacherLoginFormState extends State<_TeacherLoginForm> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todos los campos'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+      return;
+    }
+
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa un correo institucional válido'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    }
+  }
+
+  void _handleForgotPassword() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: LoginColors.cream,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Recuperar contraseña',
+          style: TextStyle(
+            color: LoginColors.brownDark,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: const Text(
+          'Contacta al administrador del sistema para restablecer tu contraseña institucional.',
+          style: TextStyle(color: LoginColors.textMuted, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Entendido',
+              style: TextStyle(color: LoginColors.brown, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: LoginColors.cream,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Botón volver
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: LoginColors.white.withOpacity(0.8),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.chevron_left_rounded,
+                      color: LoginColors.textDark,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+
+                    // Avatar docente
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: LoginColors.brown,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: LoginColors.brownDark.withOpacity(0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.person_pin_rounded,
+                        color: LoginColors.cream,
+                        size: 40,
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    const Text(
+                      'Portal Docente',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: LoginColors.brown,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Acceso al panel administrativo',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: LoginColors.textMuted,
+                      ),
+                    ),
+
+                    const SizedBox(height: 36),
+
+                    // Card contenedor del formulario
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: LoginColors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: LoginColors.brownDark.withOpacity(0.08),
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Campo correo
+                          _InputField(
+                            label: 'Correo Institucional',
+                            hint: 'profesor@ieatanquez.edu.co',
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            suffixIcon: const Icon(
+                              Icons.mail_outline_rounded,
+                              color: LoginColors.textMuted,
+                              size: 20,
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Campo contraseña
+                          _PasswordField(
+                            controller: _passwordController,
+                            obscure: _obscurePassword,
+                            onToggle: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
+                          ),
+
+                          const SizedBox(height: 28),
+
+                          // Botón acceder
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _handleLogin,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: LoginColors.brownDark,
+                                foregroundColor: LoginColors.cream,
+                                disabledBackgroundColor:
+                                    LoginColors.brownDark.withOpacity(0.6),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                elevation: 4,
+                                shadowColor:
+                                    LoginColors.brownDark.withOpacity(0.4),
+                              ),
+                              child: _isLoading
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        color: LoginColors.cream,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : const Text(
+                                      'Acceder al Panel Administrativo',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Olvidaste contraseña
+                          GestureDetector(
+                            onTap: _handleForgotPassword,
+                            child: const Text(
+                              '¿Olvidaste tu contraseña?',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: LoginColors.brown,
+                                fontWeight: FontWeight.w500,
+                                decoration: TextDecoration.underline,
+                                decorationColor: LoginColors.brown,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Footer
+                    const Text(
+                      'Acceso exclusivo para docentes autorizados',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: LoginColors.textMuted,
+                        letterSpacing: 0.3,
+                      ),
                     ),
 
                     const SizedBox(height: 30),
@@ -446,6 +731,7 @@ class _InputField extends StatelessWidget {
   final TextEditingController controller;
   final TextInputType keyboardType;
   final List<TextInputFormatter> inputFormatters;
+  final Widget? suffixIcon;
 
   const _InputField({
     required this.label,
@@ -453,6 +739,7 @@ class _InputField extends StatelessWidget {
     required this.controller,
     this.keyboardType = TextInputType.text,
     this.inputFormatters = const [],
+    this.suffixIcon,
   });
 
   @override
@@ -477,9 +764,11 @@ class _InputField extends StatelessWidget {
           style: const TextStyle(fontSize: 15, color: LoginColors.textDark),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: LoginColors.textMuted, fontSize: 15),
+            hintStyle:
+                const TextStyle(color: LoginColors.textMuted, fontSize: 14),
             filled: true,
-            fillColor: LoginColors.white,
+            fillColor: LoginColors.cream,
+            suffixIcon: suffixIcon,
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
             border: OutlineInputBorder(
@@ -492,7 +781,79 @@ class _InputField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: LoginColors.brown, width: 1.8),
+              borderSide:
+                  const BorderSide(color: LoginColors.brown, width: 1.8),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// WIDGET: Campo Contraseña con toggle
+// ─────────────────────────────────────────────
+class _PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final bool obscure;
+  final VoidCallback onToggle;
+
+  const _PasswordField({
+    required this.controller,
+    required this.obscure,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Contraseña',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: LoginColors.textDark,
+            letterSpacing: 0.3,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: obscure,
+          style: const TextStyle(fontSize: 15, color: LoginColors.textDark),
+          decoration: InputDecoration(
+            hintText: '••••••••',
+            hintStyle:
+                const TextStyle(color: LoginColors.textMuted, fontSize: 18),
+            filled: true,
+            fillColor: LoginColors.cream,
+            suffixIcon: GestureDetector(
+              onTap: onToggle,
+              child: Icon(
+                obscure
+                    ? Icons.lock_outline_rounded
+                    : Icons.lock_open_outlined,
+                color: LoginColors.textMuted,
+                size: 20,
+              ),
+            ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: LoginColors.inputBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: LoginColors.inputBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide:
+                  const BorderSide(color: LoginColors.brown, width: 1.8),
             ),
           ),
         ),
@@ -558,7 +919,9 @@ class _PinFieldState extends State<_PinField> {
                     margin: const EdgeInsets.symmetric(horizontal: 8),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: filled ? LoginColors.brown : LoginColors.inputBorder,
+                      color: filled
+                          ? LoginColors.brown
+                          : LoginColors.inputBorder,
                     ),
                   );
                 }),
@@ -582,8 +945,8 @@ class _PinFieldState extends State<_PinField> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        const BorderSide(color: LoginColors.brown, width: 1.8),
+                    borderSide: const BorderSide(
+                        color: LoginColors.brown, width: 1.8),
                   ),
                   filled: true,
                   fillColor: Colors.transparent,
