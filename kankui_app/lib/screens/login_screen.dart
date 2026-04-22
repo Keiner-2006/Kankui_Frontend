@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
 
 // ─────────────────────────────────────────────
@@ -451,41 +452,57 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
+  final email = _emailController.text.trim();
+  final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos'),
-          backgroundColor: LoginColors.brown,
-        ),
-      );
-      return;
-    }
-
-    if (!email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ingresa un correo institucional válido'),
-          backgroundColor: LoginColors.brown,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    }
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor completa todos los campos'),
+        backgroundColor: LoginColors.brown,
+      ),
+    );
+    return;
   }
+
+  if (!email.contains('@')) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Ingresa un correo institucional válido'),
+        backgroundColor: LoginColors.brown,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+  await Future.delayed(const Duration(milliseconds: 1500));
+  if (!mounted) return;
+  setState(() => _isLoading = false);
+
+  // ✅ CREAR EL OBJETO PROFESOR con los datos del login
+  final profesorAutenticado = Profesor(
+    nombre: 'Nombre del docente',     // ← Debes obtenerlo de tu API/backend
+    apellido: 'Apellido',             // ← Debes obtenerlo de tu API/backend
+    correo: email,                    // ← Usamos el email ingresado
+    institucion: 'I.E. Indígena Atánquez', // ← Puede venir del backend
+  );
+
+  if (mounted) {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminPanelPage(
+          profesor: profesorAutenticado,  // ← AHORA SÍ ESTÁ DEFINIDO
+        ),
+      ),
+    );
+  }
+}
+ 
+
+ 
+
 
   void _handleForgotPassword() {
     showDialog(
