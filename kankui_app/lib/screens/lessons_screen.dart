@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
-import '../data/vocablos_data.dart';
+import '../data/seed/vocablos_data.dart';
 import '../data/user_progress.dart';
 import '../widgets/categoria_card.dart';
 import 'lesson_detail_screen.dart';

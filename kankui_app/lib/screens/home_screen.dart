@@ -9,6 +9,8 @@ import 'lessons_screen.dart';
 import 'scanner_screen.dart';
 import 'ranking_screen.dart';
 import 'profile_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../data/sync/sync_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,9 +20,19 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final syncService = SyncService(Supabase.instance.client);
+      await syncService.syncApp();
+    });
+  }
   int _currentIndex = 0;
 
-  // Estado simulado del usuario
+
   final UserProgress _userProgress = const UserProgress(
     xpTotal: 450,
     xpHoy: 35,
