@@ -1,6 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
+import 'package:uuid/uuid.dart';
+import '../models/estudiantes_model.dart';
+import '../repositories/estudiante_repository.dart';
 
 // ============================================================
 // PALETA DE COLORES (misma que AdminPanelPage)
@@ -121,10 +125,32 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
     setState(() => _guardando = true);
 
-    // ── [API REAL] Reemplaza este bloque por tu llamada al repositorio ──
-    await Future.delayed(const Duration(milliseconds: 800)); // simula latencia
+    // ── [API REAL] Llamada al repositorio ──
+    final repo = GetIt.I<EstudianteRepository>();
+    final uuid = const Uuid().v4();
     final pin = _generarPin();
-    // ── [FIN BLOQUE MOCK] ───────────────────────────────────────────────
+    
+    final nuevoEstudiante = EstudianteModel(
+      id: uuid,
+      usuarioId: 'US_$uuid', // TODO: Aquí deberías enlazar con el UID de Auth si lo tienes
+      curso: _gradoSeleccionado,
+      grupo: 1, // Por defecto o agregar campo en UI
+      pin: pin,
+      // Los datos de gamificación inicializan base en el modelo internamente
+    );
+
+    final exito = await repo.guardarEstudiante(nuevoEstudiante);
+
+    if (!exito) {
+      if (mounted) {
+        setState(() => _guardando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al guardar el estudiante. Revisa tu conexión.')),
+        );
+      }
+      return;
+    }
+    // ── [FIN LLAMADA] ───────────────────────────────────────────────
 
     if (!mounted) return;
 
