@@ -12,7 +12,7 @@ class EstudianteRepository {
   // CREATE / UPDATE (Upsert)
   // Guarda un nuevo estudiante o sobreescribe uno existente si los IDs coinciden
   // ==========================================
-  Future<bool> guardarEstudiante(Estudiante estudiante) async {
+ /* Future<bool> guardarEstudiante(Estudiante estudiante) async {
     try {
       await supabase.from(_tableName).upsert(estudiante.toJson());
       developer.log('Estudiante guardado exitosamente: ${estudiante.id}',
@@ -24,7 +24,25 @@ class EstudianteRepository {
       return false;
     }
   }
+*/
 
+Future<bool> guardarEstudiante({
+  required Estudiante estudiante,
+  required String maestroId,
+}) async {
+  try {
+    final data = estudiante.toJson();
+    data['maestro_id'] = maestroId;
+
+    await supabase.from(_tableName).upsert(data);
+
+    return true;
+  } catch (e) {
+    developer.log('Error al guardar estudiante: $e',
+        name: 'EstudianteRepository', error: e);
+    return false;
+  }
+}
   // ==========================================
   // READ (Uno)
   // Obtiene un estudiante según el ID de usuario de autenticación

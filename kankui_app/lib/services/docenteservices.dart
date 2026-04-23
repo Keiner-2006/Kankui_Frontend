@@ -4,40 +4,72 @@ import '../models/estudiantes_model.dart';
 class DocenteService {
   final supabase = Supabase.instance.client;
 
+  // ==========================================
   // 🔍 OBTENER ESTUDIANTES DEL DOCENTE
-  Future<List<Estudiante>> obtenerEstudiantes(String docenteId) async {
-    final response = await supabase
-        .from('estudiante')
-        .select()
-        .eq('maestro_id', docenteId);
+  // ==========================================
+  Future<Estudiante> crearEstudianteConPinUnico(
+  Estudiante e,
+  String docenteId,
+  String usuarioEstudianteId, // 🔥 NUEVO
+) async {
 
-    return (response as List)
-        .map((e) => Estudiante.fromJson(e))
-        .toList();
+  print('🔍 Buscando maestro para docente: $docenteId');
+
+  // 🔍 Obtener maestro_id
+  var maestro = await supabase
+      .from('maestro')
+      .select('id')
+      .eq('usuario_id', docenteId)
+      .maybeSingle();
+
+  if (maestro == null) {
+    final nuevoMaestroId = DateTime.now().millisecondsSinceEpoch.toString();
+
+    await supabase.from('maestro').insert({
+      'id': nuevoMaestroId,
+      'usuario_id': docenteId,
+    });
+
+    maestro = {'id': nuevoMaestroId};
   }
 
-  // ➕ CREAR ESTUDIANTE
-   Future<Estudiante> crearEstudianteConPinUnico(
-    Estudiante e, String docenteId
-  ) async {
-    // Llamar a la función RPC para generar PIN único
-    final pinGenerado = await supabase.rpc(
-      'generar_pin_unico',
-      // Si necesitas parámetros, van aquí
-      // params: {}
-    );
-    
-    // Insertar estudiante con el PIN generado
-    final response = await supabase.from('estudiante').insert({
-      ...e.toJson(),
-      'maestro_id': docenteId,
-      'pin': pinGenerado, // Usar PIN generado por la BD
-    }).select().single();
-    
-    return Estudiante.fromJson(response);
+  final maestroId = maestro['id'];
+
+  // 🔍 VALIDAR SI YA EXISTE ESTE ESTUDIANTE
+  final existente = await supabase
+      .from('estudiante')
+      .select()
+      .eq('usuario_id', usuarioEstudianteId)
+      .maybeSingle();
+
+  if (existente != null) {
+    print('⚠️ Este usuario ya es estudiante');
+    return Estudiante.fromJson(existente);
   }
 
+  // 🔐 Generar PIN
+  final pin = await supabase.rpc('generar_pin_unico');
+
+  print('📝 Creando estudiante con usuario_id: $usuarioEstudianteId');
+
+  final response = await supabase.from('estudiante').insert({
+    ...e.toJson(),
+    'usuario_id': usuarioEstudianteId, // 🔥 CLAVE
+    'maestro_id': maestroId,
+    'pin': pin,
+  }).select().single();
+
+  print('✅ Estudiante creado correctamente');
+
+  return Estudiante.fromJson(response);
+}
+
+
+
+
+  // ==========================================
   // ✏️ ACTUALIZAR ESTUDIANTE
+  // ==========================================
   Future<void> actualizarEstudiante(Estudiante e) async {
     await supabase
         .from('estudiante')
@@ -45,7 +77,9 @@ class DocenteService {
         .eq('id', e.id);
   }
 
+  // ==========================================
   // ❌ ELIMINAR ESTUDIANTE
+  // ==========================================
   Future<void> eliminarEstudiante(String id) async {
     await supabase.from('estudiante').delete().eq('id', id);
   }

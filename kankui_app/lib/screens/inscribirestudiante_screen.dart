@@ -111,10 +111,9 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
   /// Genera un PIN numérico de 4 dígitos.
   /// TODO: en producción solicitar el PIN al backend para garantizar unicidad.
+  
  
-  /// Valida el formulario, genera el PIN y llama al callback.
- Future<void> _guardarYGenerar() async {
-  // Cierra el teclado
+  Future<void> _guardarYGenerar() async {
   FocusScope.of(context).unfocus();
 
   if (!_formKey.currentState!.validate()) return;
@@ -122,54 +121,82 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   setState(() => _guardando = true);
 
   try {
-    // Obtener usuario autenticado
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
+    final supabase = Supabase.instance.client;
+
+    // 👨‍🏫 DOCENTE LOGUEADO
+    final docente = supabase.auth.currentUser;
+    if (docente == null) {
       throw Exception('Usuario no autenticado');
     }
-    
-    // Crear objeto Estudiante (sin PIN, la BD lo generará)
+
+    print("👨‍🏫 Docente ID: ${docente.id}");
+
+    // =========================
+    // 1. CREAR USUARIO ESTUDIANTE
+    // =========================
+    final usuarioEstudiante = await supabase.from('usuario').insert({
+      'id': const Uuid().v4(),
+      'nombre': _nombreController.text.trim(),
+      'identificacion': int.parse(_idController.text.trim()),
+      'rol': 'estudiante',
+    }).select().single();
+
+    final usuarioEstudianteId = usuarioEstudiante['id'];
+
+    print("👤 Usuario estudiante creado: $usuarioEstudianteId");
+
+    // =========================
+    // 2. CREAR OBJETO ESTUDIANTE
+    // =========================
     final estudiante = Estudiante(
       id: const Uuid().v4(),
-      usuarioId: user.id,
+      usuarioId: usuarioEstudianteId, // ✅ CORRECTO
       curso: _gradoSeleccionado,
       grupo: null,
-      pin: '', // Temporal, será reemplazado por la BD
+      pin: '',
       ultimaActividad: DateTime.now(),
     );
-    
-    // Crear estudiante con PIN generado por Supabase
-    final estudianteCreado = await docenteservice.crearEstudianteConPinUnico(
-      estudiante,
-      user.id,
-    );
+
+    // =========================
+    // 3. CREAR ESTUDIANTE REAL
+    // =========================
+    final estudianteCreado =
+    await docenteservice.crearEstudianteConPinUnico(
+  estudiante,
+  docente.id,
+  usuarioEstudianteId,
+);
+
     final pinGenerado = estudianteCreado.pin;
+
     if (pinGenerado == null || pinGenerado.isEmpty) {
       throw Exception('PIN generado inválido');
     }
-    
+
     if (!mounted) return;
-    
+
     setState(() {
-      _pinGenerado = pinGenerado; // PIN generado por la BD
+      _pinGenerado = pinGenerado;
       _guardando = false;
     });
-    
+
     final resultado = NuevoEstudianteResult(
       nombreCompleto: _nombreController.text.trim(),
       identificacion: _idController.text.trim(),
       grado: _gradoSeleccionado!,
       pin: pinGenerado,
     );
-    
+
     widget.onGuardar?.call(resultado);
     _mostrarDialogoExito(resultado);
-    
+
   } catch (e) {
     if (!mounted) return;
+
     setState(() => _guardando = false);
-    print ('Error al guardar estudiante: $e');
-    // Mostrar error
+
+    print('❌ Error al guardar estudiante: $e');
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Error al guardar: $e'),
@@ -178,6 +205,9 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     );
   }
 }
+
+
+
   void _mostrarDialogoExito(NuevoEstudianteResult r) {
     showDialog(
       context: context,

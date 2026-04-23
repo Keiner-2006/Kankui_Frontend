@@ -5,6 +5,7 @@ import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
 import 'package:kankui_app/models/maestro_model.dart';
 import '../services/auth_services.dart';
+import '../data/remote/supabase_service.dart';
 // ─────────────────────────────────────────────
 // COLORES
 // ─────────────────────────────────────────────
@@ -529,7 +530,22 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
       throw Exception('Credenciales inválidas');
     }
 
-    // 👇 CREAMOS UN PROFESOR BÁSICO (SIN BD)
+    // Crear usuario en tabla usuarios
+    try {
+      await SupabaseService().insertarUsuario({
+        'id': user.id,
+        'nombre': user.email?.split('@')[0] ?? 'Docente',
+        'identificacion': 0,
+        'rol': 'maestro',
+        'fecha_registro': DateTime.now().toIso8601String(),
+        'institucion_id': null,
+      });
+    } catch (e) {}
+
+    // Crear registro de maestro si no existe
+    await SupabaseService().insertarMaestro(userId: user.id);
+
+    // �👇 CREAMOS UN PROFESOR BÁSICO (SIN BD)
     final profesorAutenticado = Profesor(
       nombre: 'Docente',
       apellido: '',
