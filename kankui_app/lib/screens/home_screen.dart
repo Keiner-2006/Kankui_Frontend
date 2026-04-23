@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // Cargar categorías (Versión Keiner)
       final repo = locator<CategoriaRepository>();
       final categorias = await repo.getCategorias();
-
+     categorias.sort((a, b) => a.orden.compareTo(b.orden));
       if (mounted) {
         setState(() {
           _categorias = categorias;
@@ -65,12 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
     rachaDias: 5,
     leccionesCompletadas: 8,
     escaneoExitosos: 3,
-    leccionesDesbloqueadas: [
-      'leccion_1',
-      'leccion_2',
-      'leccion_3',
-      'leccion_4'
-    ],
+   
     logrosDesbloqueados: ['primera_palabra', 'racha_3'],
   );
 
@@ -164,7 +159,6 @@ class _HomeContent extends StatelessWidget {
           // Mapa/Camino de lecciones
           SliverToBoxAdapter(
             child: SierraPath(
-              leccionesDesbloqueadas: userProgress.leccionesDesbloqueadas,
               leccionesCompletadas: userProgress.leccionesCompletadas,
               categorias: categorias,
             ),

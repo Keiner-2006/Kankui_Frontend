@@ -6,15 +6,14 @@ import '../models/categoria_model.dart';
 /// Widget que muestra el camino de la Sierra Nevada
 /// Representación visual del progreso del usuario a través de las lecciones
 class SierraPath extends StatelessWidget {
-  final List<String> leccionesDesbloqueadas;
+  
   final int leccionesCompletadas;
   final List<CategoriaModel> categorias;
 
   const SierraPath({
-    super.key,
-    required this.leccionesDesbloqueadas,
+     super.key,
     required this.leccionesCompletadas,
-    this.categorias = const [],
+    required this.categorias,
   });
 
   @override
@@ -54,29 +53,28 @@ class SierraPath extends StatelessWidget {
           };
         }).toList();
 
-    for (int i = 0; i < lecciones.length; i++) {
-      final leccion = lecciones[i];
-      final isDesbloqueada = leccionesDesbloqueadas.contains(leccion['id'].toString());
-      final isCompletada = i < leccionesCompletadas;
-      final isCurrent =
-          isDesbloqueada && !isCompletada && i == leccionesCompletadas;
+   for (int i = 0; i < lecciones.length; i++) {
+  final leccion = lecciones[i];
 
-      nodes.add(
-        Positioned(
-          left: leccion['x'] as double,
-          top: leccion['y'] as double,
-          child: _LessonNode(
-            nombre: leccion['nombre'] as String,
-            icono: leccion['icono'] as String,
-            isDesbloqueada: isDesbloqueada,
-            isCompletada: isCompletada,
-            isCurrent: isCurrent,
-            onTap: isDesbloqueada ? () {} : null,
-          ),
-        ),
-      );
-    }
+  final isCompletada = i < leccionesCompletadas;
+  final isDesbloqueada = i <= leccionesCompletadas;
+  final isCurrent = i == leccionesCompletadas;
 
+  nodes.add(
+    Positioned(
+      left: leccion['x'] as double,
+      top: leccion['y'] as double,
+      child: _LessonNode(
+        nombre: leccion['nombre'] as String,
+        icono: leccion['icono'] as String,
+        isDesbloqueada: isDesbloqueada,
+        isCompletada: isCompletada,
+        isCurrent: isCurrent,
+        onTap: isDesbloqueada ? () {} : null,
+      ),
+    ),
+  );
+}
     return nodes;
   }
 }
