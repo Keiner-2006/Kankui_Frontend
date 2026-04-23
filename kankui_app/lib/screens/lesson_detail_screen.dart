@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
-import '../data/vocablos_data.dart';
+import '../models/categoria_model.dart';
+import '../data/seed/vocablos_data.dart';
 
 class LessonDetailScreen extends StatefulWidget {
-  final CategoriaVocablo categoria;
+  final CategoriaModel categoria;
   final List<Vocablo> vocablos;
 
   const LessonDetailScreen({

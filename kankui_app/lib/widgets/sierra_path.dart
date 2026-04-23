@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
+import '../models/categoria_model.dart';
 
 /// Widget que muestra el camino de la Sierra Nevada
 /// Representación visual del progreso del usuario a través de las lecciones
 class SierraPath extends StatelessWidget {
   final List<String> leccionesDesbloqueadas;
   final int leccionesCompletadas;
+  final List<CategoriaModel> categorias;
 
   const SierraPath({
     super.key,
     required this.leccionesDesbloqueadas,
     required this.leccionesCompletadas,
+    this.categorias = const [],
   });
 
   @override
@@ -33,11 +36,27 @@ class SierraPath extends StatelessWidget {
 
   List<Widget> _buildLessonNodes(BuildContext context) {
     final nodes = <Widget>[];
-    final lecciones = _leccionesData;
+    
+    // Si no hay categorías de la DB, usar las hardcoded por defecto para no romper el UI
+    final List<Map<String, dynamic>> lecciones = categorias.isEmpty 
+      ? _leccionesData 
+      : categorias.asMap().entries.map((entry) {
+          int index = entry.key;
+          CategoriaModel cat = entry.value;
+          // Reutilizar coordenadas del camino predefinido si es posible
+          final defaultData = index < _leccionesData.length ? _leccionesData[index] : _leccionesData.last;
+          return {
+            'id': cat.id,
+            'nombre': cat.nombre,
+            'icono': cat.icono ?? 'espiral',
+            'x': defaultData['x'],
+            'y': defaultData['y'],
+          };
+        }).toList();
 
     for (int i = 0; i < lecciones.length; i++) {
       final leccion = lecciones[i];
-      final isDesbloqueada = leccionesDesbloqueadas.contains(leccion['id']);
+      final isDesbloqueada = leccionesDesbloqueadas.contains(leccion['id'].toString());
       final isCompletada = i < leccionesCompletadas;
       final isCurrent =
           isDesbloqueada && !isCompletada && i == leccionesCompletadas;
@@ -277,7 +296,7 @@ class _SierraPathPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// Datos de las lecciones para el mapa
+// Datos de las lecciones para el mapa (Coordenadas predefinidas)
 final List<Map<String, dynamic>> _leccionesData = [
   {
     'id': 'leccion_1',

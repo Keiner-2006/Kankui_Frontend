@@ -50,7 +50,7 @@ class Estudiante {
 // DATOS DE EJEMPLO (reemplazar con llamadas a API/BLoC/Provider)
 // ============================================================
 
-final _profesorEjemplo = const Profesor(
+const _profesorEjemplo = Profesor(
   nombre: 'Laura',
   apellido: 'Martínez',
   correo: 'laura@iedemo.edu.co',
@@ -94,11 +94,14 @@ class AdminPanelPage extends StatefulWidget {
   /// Callback al pulsar "Exportar".
   final VoidCallback? onExportar;
 
+  final String? maestroId;
+
   const AdminPanelPage({
     super.key,
     required this.profesor,
     this.onAgregarEstudiante,
     this.onExportar,
+    this.maestroId,
   });
 
   @override
@@ -218,10 +221,13 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       await locator<SupabaseService>().insertarUsuario(nuevoUsuario);
       // Recargar lista después de agregar
       await _cargarEstudiantes();
+      
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Estudiante agregado exitosamente')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al agregar estudiante: $e')),
       );
@@ -277,7 +283,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       ),
 
       // ── FAB AGREGAR ─────────────────────────────────────────
-      floatingActionButton: _AddFab(onPressed: widget.onAgregarEstudiante),
+      floatingActionButton: _AddFab(
+        onPressed: widget.onAgregarEstudiante,
+        maestroId: widget.maestroId,
+      ),
     );
   }
 
@@ -391,7 +400,7 @@ class _Header extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -427,7 +436,7 @@ class _SearchBar extends StatelessWidget {
           border: Border.all(color: _AppColors.searchBorder),
           boxShadow: [
             BoxShadow(
-              color: _AppColors.headerBrown.withOpacity(0.06),
+              color: _AppColors.headerBrown.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 3),
             ),
@@ -557,7 +566,7 @@ class _EstudianteCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: _AppColors.headerBrown.withOpacity(0.06),
+              color: _AppColors.headerBrown.withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -620,7 +629,7 @@ class _Avatar extends StatelessWidget {
       height: 46,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _AppColors.accentLight.withOpacity(0.25),
+        color: _AppColors.accentLight.withValues(alpha: 0.25),
         image: url != null
             ? DecorationImage(image: NetworkImage(url!), fit: BoxFit.cover)
             : null,
@@ -692,8 +701,9 @@ class _PinBadge extends StatelessWidget {
 
 class _AddFab extends StatelessWidget {
   final VoidCallback? onPressed;
+  final String? maestroId;
 
-  const _AddFab({this.onPressed});
+  const _AddFab({this.onPressed, this.maestroId});
 
   @override
   Widget build(BuildContext context) {
@@ -704,7 +714,9 @@ class _AddFab extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => const InscribirEstudiantePage()),
+                  builder: (_) => InscribirEstudiantePage(
+                        maestroId: maestroId,
+                      )),
             );
           },
       backgroundColor: _AppColors.accent,

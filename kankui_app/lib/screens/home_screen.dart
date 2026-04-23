@@ -9,7 +9,11 @@ import 'lessons_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'ranking_screen.dart';
 import 'profile_screen.dart';
-
+import '../data/sync/sync_service.dart';
+import '../models/categoria_model.dart';
+import '../repositories/categoria_repository.dart';
+import '../services/service_locator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -18,7 +22,32 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
+  List<CategoriaModel> _categorias = [];
+  bool _loadingCategorias = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    // Sincronizar aplicación
+    final syncService = SyncService(Supabase.instance.client);
+    await syncService.syncApp();
+
+    // Cargar categorías
+    final repo = locator<CategoriaRepository>();
+    final categorias = await repo.getCategorias();
+
+    if (mounted) {
+      setState(() {
+        _categorias = categorias;
+        _loadingCategorias = false;
+      });
+    }
+  }  int _currentIndex = 0;
 
   // Estado simulado del usuario
   final UserProgress _userProgress = const UserProgress(
@@ -39,16 +68,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _HomeContent(userProgress: _userProgress),
-          LessonsScreen(userProgress: _userProgress),
-          const QrScannerScreen(),
-          RankingScreen(userProgress: _userProgress),
-          ProfileScreen(userProgress: _userProgress),
-        ],
-      ),
+      body: _loadingCategorias
+          ? const Center(child: CircularProgressIndicator(color: AppColors.terracota))
+          : IndexedStack(
+              index: _currentIndex,
+              children: [
+                _HomeContent(userProgress: _userProgress, categorias: _categorias),
+                LessonsScreen(userProgress: _userProgress, initialCategorias: _categorias),
+                const QrScannerScreen(),
+                RankingScreen(userProgress: _userProgress),
+                ProfileScreen(userProgress: _userProgress),
+              ],
+            ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -63,8 +94,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _HomeContent extends StatelessWidget {
   final UserProgress userProgress;
+  final List<CategoriaModel> categorias;
 
-  const _HomeContent({required this.userProgress});
+  const _HomeContent({
+    required this.userProgress,
+    required this.categorias,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -122,6 +157,7 @@ class _HomeContent extends StatelessWidget {
             child: SierraPath(
               leccionesDesbloqueadas: userProgress.leccionesDesbloqueadas,
               leccionesCompletadas: userProgress.leccionesCompletadas,
+              categorias: categorias,
             ),
           ),
 

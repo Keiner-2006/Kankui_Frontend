@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
+import 'package:get_it/get_it.dart';
+import '../repositories/maestro_repository.dart';
 
 // ─────────────────────────────────────────────
 // COLORES
