@@ -53,11 +53,11 @@ class EstudianteModel {
         'xp_hoy': xpHoy,
         'racha_dias': rachaDias,
         'ultima_actividad': ultimaActividad?.toIso8601String(),
-        'lecciones_completadas': leccionesCompletadas,
-        'escaneo_exitosos': escaneoExitosos,
-        'vocablos_aprendidos': vocablosAprendidos,
+        'lecciones_completadas_total': leccionesCompletadas,
+        'escaneos_exitosos': escaneoExitosos,
         'lecciones_desbloqueadas': leccionesDesbloqueadas,
         'logros_desbloqueados': logrosDesbloqueados,
+        'vocablosAprendidos': vocablosAprendidos,
       };
 
   // Factory desde JSON (desde DB o API)
@@ -76,9 +76,9 @@ class EstudianteModel {
         ultimaActividad: json['ultima_actividad'] != null
             ? DateTime.tryParse(json['ultima_actividad'])
             : null,
-        leccionesCompletadas: json['lecciones_completadas'] ?? 0,
-        escaneoExitosos: json['escaneo_exitosos'] ?? 0,
-        vocablosAprendidos: json['vocablos_aprendidos'] ?? 0,
+        leccionesCompletadas: json['lecciones_completadas_total'] ?? 0,
+        escaneoExitosos: json['escaneos_exitosos'] ?? 0,
+        vocablosAprendidos: json['vocablosAprendidos'] ?? 0,
         leccionesDesbloqueadas: List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
         logrosDesbloqueados: List<String>.from(json['logros_desbloqueados'] ?? []),
       );
