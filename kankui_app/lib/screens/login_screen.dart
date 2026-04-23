@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
 import 'package:kankui_app/models/maestro_model.dart';
-
+import '../services/auth_services.dart';
 // ─────────────────────────────────────────────
 // COLORES
 // ─────────────────────────────────────────────
@@ -272,13 +272,16 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
 
     try {
       // TODO: Reemplaza esto con tu lógica real de autenticación de estudiantes
-      // Por ejemplo: consultar tabla 'estudiantes' con id y pin
-      final perfil = await Supabase.instance.client
-          .from('estudiantes')
-          .select()
-          .eq('codigo', _idController.text.trim())
-          .eq('pin', _pinController.text)
-          .maybeSingle();
+      // Por ejemplo: consultar tabla 'estudiante' con id y pin
+   /*   final perfil = await Supabase.instance.client
+       .from('estudiante')
+    .select('''
+      *,
+      usuario:usuario_id (*)
+    ''')
+    .eq('usuario.id', _idController.text.trim()) // Buscar por ID de usuario
+    .eq('pin', _pinController.text)
+    .maybeSingle();
 
       if (!mounted) return;
 
@@ -291,7 +294,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
         );
         return;
       }
-
+*/
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -382,14 +385,16 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         color: LoginColors.textMuted,
                       ),
                     ),
-                    const SizedBox(height: 36),
+                   const SizedBox(height: 36),
                     _InputField(
                       label: 'ID Estudiantil',
-                      hint: 'Ej: 1234567890',
+                      hint: 'Ej: ABC-12345 o 1234567890',
                       controller: _idController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.text,
                       inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
+                        // Permitir letras (mayúsculas/minúsculas), números, guiones y guión bajo
+                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\-_]')),
+                        LengthLimitingTextInputFormatter(20),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -483,82 +488,62 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
 
   // ─── LOGIN DOCENTE CON SUPABASE ───────────────
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
+     final email = _emailController.text.trim();
+  final password = _passwordController.text;
 
-    // Validaciones básicas
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos'),
-          backgroundColor: LoginColors.brown,
-        ),
+  // Validaciones básicas
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor completa todos los campos'),
+        backgroundColor: LoginColors.brown,
+      ),
+    );
+    return;
+  }
+
+  if (!email.contains('@')) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Ingresa un correo válido'),
+        backgroundColor: LoginColors.brown,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+  
+  try {
+    // 🔐 SOLO LOGIN CON SUPABASE AUTH
+   final res = await AuthService().login(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
-      return;
+
+    if (!mounted) return;
+
+    final user = res.user;
+
+    if (user == null) {
+      throw Exception('Credenciales inválidas');
     }
 
-    if (!email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ingresa un correo institucional válido'),
-          backgroundColor: LoginColors.brown,
-        ),
-      );
-      return;
-    }
+    // 👇 CREAMOS UN PROFESOR BÁSICO (SIN BD)
+    final profesorAutenticado = Profesor(
+      nombre: 'Docente',
+      apellido: '',
+      correo: user.email ?? '',
+      institucion: 'I.E. Indígena Atánquez',
+    );
 
-    setState(() => _isLoading = true);
-
-    try {
-      // 1. Autenticar con Supabase Auth
-      final res = await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-
-      if (!mounted) return;
-
-      final user = res.user;
-      if (user == null) {
-        throw Exception('No se pudo autenticar. Verifica tus credenciales.');
-      }
-
-      // 2. Buscar el perfil del docente en la tabla 'docentes'
-      final perfil = await Supabase.instance.client
-          .from('docentes')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
-
-      if (!mounted) return;
-
-      if (perfil == null) {
-        // El usuario existe en Auth pero no tiene perfil de docente
-        await Supabase.instance.client.auth.signOut();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No tienes perfil de docente registrado.'),
-            backgroundColor: LoginColors.brown,
-          ),
-        );
-        return;
-      }
-
-      // 3. Construir el objeto Profesor con datos reales
-      final profesorAutenticado = Profesor(
-        nombre: perfil['nombre'] ?? '',
-        apellido: perfil['apellido'] ?? '',
-        correo: email,
-        institucion: perfil['institucion'] ?? 'I.E. Indígena Atánquez',
-      );
-
-      // 4. Navegar al panel administrativo
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
-        ),
-      );
+    // 🚀 ENTRAR DIRECTO
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
+      ),
+    );
     } on AuthException catch (e) {
       // Error específico de Supabase Auth (credenciales inválidas, etc.)
       if (!mounted) return;

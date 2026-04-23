@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kankui_app/screens/inscribirestudiante_screen.dart';
+import 'package:kankui_app/services/service_locator.dart';
+import 'package:kankui_app/data/remote/supabase_service.dart';
+import 'package:uuid/uuid.dart';
 
 // ============================================================
 // MODELOS DE DATOS
@@ -156,14 +159,26 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
 
     try {
       // ── [API REAL] Sustituye estas líneas por tu llamada real ──
-      await Future.delayed(const Duration(milliseconds: 900)); // simula latencia
+      await Future.delayed(
+          const Duration(milliseconds: 900)); // simula latencia
 
       final datos = [
-        const Estudiante(id: '1045231789', nombre: 'Juan',   apellido: 'Kakuamo',   pin: '4281'),
-        const Estudiante(id: '1043567821', nombre: 'María',  apellido: 'Izquierdo', pin: '3947'),
-        const Estudiante(id: '1044890234', nombre: 'Carlos', apellido: 'Ríos',      pin: '5612'),
-        const Estudiante(id: '1042341567', nombre: 'Ana',    apellido: 'Torres',    pin: '2834'),
-        const Estudiante(id: '1045678923', nombre: 'Luis',   apellido: 'Villafaña', pin: '7195'),
+        const Estudiante(
+            id: '1045231789', nombre: 'Juan', apellido: 'Kakuamo', pin: '4281'),
+        const Estudiante(
+            id: '1043567821',
+            nombre: 'María',
+            apellido: 'Izquierdo',
+            pin: '3947'),
+        const Estudiante(
+            id: '1044890234', nombre: 'Carlos', apellido: 'Ríos', pin: '5612'),
+        const Estudiante(
+            id: '1042341567', nombre: 'Ana', apellido: 'Torres', pin: '2834'),
+        const Estudiante(
+            id: '1045678923',
+            nombre: 'Luis',
+            apellido: 'Villafaña',
+            pin: '7195'),
       ];
       // ── [FIN BLOQUE MOCK] ──────────────────────────────────────
 
@@ -179,6 +194,37 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
         _error = 'No se pudieron cargar los estudiantes.\nIntenta de nuevo.';
         _cargando = false;
       });
+    }
+  }
+
+  // ── Agregar estudiante ────────────────────────────────────────
+
+  /// Agrega un nuevo estudiante usando Supabase.
+  Future<void> _agregarEstudiante(
+      String nombre, String apellido, String pin) async {
+    const uuid = Uuid();
+    final nuevoUsuario = {
+      'id': uuid.v4(),
+      'nombre': '$nombre $apellido',
+      'identificacion':
+          int.tryParse(pin) ?? 0, // usa pin como identificación temporal
+      'rol': 'estudiante',
+      'fecha_registro': DateTime.now().toIso8601String(),
+      'institucion_id': widget
+          .profesor.institucion, // asume que es el ID, ajustar si es nombre
+    };
+
+    try {
+      await locator<SupabaseService>().insertarUsuario(nuevoUsuario);
+      // Recargar lista después de agregar
+      await _cargarEstudiantes();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Estudiante agregado exitosamente')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al agregar estudiante: $e')),
+      );
     }
   }
 
@@ -209,7 +255,8 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
           children: [
             // ── HEADER ──────────────────────────────────────────
             _Header(
-              institucion: widget.profesor.institucion, // <-- viene del Profesor
+              institucion:
+                  widget.profesor.institucion, // <-- viene del Profesor
             ),
 
             // ── BARRA DE BÚSQUEDA ───────────────────────────────
@@ -651,13 +698,15 @@ class _AddFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: onPressed ?? () {
-        // Navegar directamente a la página de agregar estudiante
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const InscribirEstudiantePage()),
-        );
-      },
+      onPressed: onPressed ??
+          () {
+            // Navegar directamente a la página de agregar estudiante
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const InscribirEstudiantePage()),
+            );
+          },
       backgroundColor: _AppColors.accent,
       elevation: 4,
       child: const Icon(Icons.add, color: Colors.white, size: 28),
@@ -688,7 +737,7 @@ class _DemoApp extends StatelessWidget {
         fontFamily: 'Roboto',
       ),
       home: AdminPanelPage(
-        profesor: _profesorEjemplo,       // ← inyectar desde auth/state
+        profesor: _profesorEjemplo, // ← inyectar desde auth/state
         // 'estudiantes' ya NO existe: AdminPanel los carga internamente
         onAgregarEstudiante: () {
           // TODO: Navigator.push(...) a formulario de nuevo estudiante

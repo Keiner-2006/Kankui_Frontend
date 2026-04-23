@@ -208,6 +208,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.5.0"
+  get_it:
+    dependency: "direct main"
+    description:
+      name: get_it
+      sha256: d85128a5dae4ea777324730dc65edd9c9f43155c109d5cc0a69cab74139fbac1
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.7.0"
   glob:
     dependency: transitive
     description:
@@ -352,6 +360,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  mobile_scanner:
+    dependency: "direct main"
+    description:
+      name: mobile_scanner
+      sha256: c92c26bf2231695b6d3477c8dcf435f51e28f87b1745966b1fe4c47a286171ce
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.2.0"
   native_toolchain_c:
     dependency: transitive
     description:

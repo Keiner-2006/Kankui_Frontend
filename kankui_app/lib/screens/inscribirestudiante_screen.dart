@@ -1,4 +1,4 @@
-import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kankui_app/services/docenteservices.dart';
@@ -168,7 +168,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   } catch (e) {
     if (!mounted) return;
     setState(() => _guardando = false);
-    
+    print ('Error al guardar estudiante: $e');
     // Mostrar error
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
