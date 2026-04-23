@@ -34,8 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchData() async {
     // Sincronizar aplicación
-    final syncService = SyncService(Supabase.instance.client);
-    await syncService.syncApp();
+    final syncService = SyncService();
+    await syncService.sincronizarPalabras();
 
     // Cargar categorías
     final repo = locator<CategoriaRepository>();
@@ -47,7 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _loadingCategorias = false;
       });
     }
-  }  int _currentIndex = 0;
+  }
+
+  int _currentIndex = 0;
 
   // Estado simulado del usuario
   final UserProgress _userProgress = const UserProgress(

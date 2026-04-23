@@ -73,12 +73,10 @@ class NuevoEstudianteResult {
 // ============================================================
 
 class InscribirEstudiantePage extends StatefulWidget {
-  /// Callback invocado al guardar exitosamente.
-  /// Recibe el resultado con los datos + PIN generado.
-  /// TODO: conectar al repositorio/BLoC para persistir en la API.
   final void Function(NuevoEstudianteResult resultado)? onGuardar;
+  final String? maestroId;
 
-  const InscribirEstudiantePage({super.key, this.onGuardar});
+  const InscribirEstudiantePage({super.key, this.onGuardar, this.maestroId});
 
   @override
   State<InscribirEstudiantePage> createState() =>
