@@ -24,6 +24,57 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.vocablos.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.crema,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_rounded),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(widget.categoria.nombre),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  size: 64,
+                  color: AppColors.textoClaro,
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'No hay vocablos disponibles',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: AppColors.textoOscuro,
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Pronto se añadirán nuevas palabras a esta categoría.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textoClaro,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Volver'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final vocablo = widget.vocablos[_currentIndex];
 
     return Scaffold(

@@ -144,6 +144,16 @@ class _LessonsScreenState extends State<LessonsScreen> {
                         cantidadVocablos: categoria.totalPalabras,
                         progreso: progreso,
                         onTap: () {
+                          if (vocablosCategoria.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Esta categoría aún no tiene vocablos asignados.'),
+                                backgroundColor: AppColors.terracota,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
                           Navigator.push(
                             context,
                             MaterialPageRoute(
