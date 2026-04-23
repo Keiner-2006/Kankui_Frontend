@@ -47,6 +47,41 @@ class EstudianteRepository {
       return null;
     }
   }
+ Future<List<Estudiante>> obtenerTodos() async {
+  try {
+    final response = await supabase
+        .from(_tableName)
+        .select('''
+          id,
+          usuario_id,
+          pin,
+          usuario:usuario_id (
+            nombre,
+            Apellido
+          )
+        ''');
+
+    print('📦 RAW RESPONSE: $response');
+
+    return response.map<Estudiante>((json) {
+      final usuario = json['usuario'];
+
+      print('👀 JSON individual: $json');
+
+      return Estudiante(
+        id: json['id'],
+        nombre: usuario != null ? usuario['nombre'] ?? 'Sin nombre' : 'Sin nombre',
+        apellido: usuario != null ? usuario['Apellido'] ?? '' : '',
+        pin: json['pin'] ?? '0000',
+      );
+    }).toList();
+
+  } catch (e, stack) {
+    print('❌ ERROR EN REPO: $e');
+    print(stack);
+    return [];
+  }
+}
 
   // ==========================================
   // READ (Todos o Ranking)

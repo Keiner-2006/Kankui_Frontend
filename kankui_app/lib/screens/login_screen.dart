@@ -385,16 +385,14 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         color: LoginColors.textMuted,
                       ),
                     ),
-                   const SizedBox(height: 36),
+                    const SizedBox(height: 36),
                     _InputField(
                       label: 'ID Estudiantil',
-                      hint: 'Ej: ABC-12345 o 1234567890',
+                      hint: 'Ej: 1234567890',
                       controller: _idController,
-                      keyboardType: TextInputType.text,
+                      keyboardType: TextInputType.number,
                       inputFormatters: [
-                        // Permitir letras (mayúsculas/minúsculas), números, guiones y guión bajo
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\-_]')),
-                        LengthLimitingTextInputFormatter(20),
+                        FilteringTextInputFormatter.digitsOnly,
                       ],
                     ),
                     const SizedBox(height: 20),

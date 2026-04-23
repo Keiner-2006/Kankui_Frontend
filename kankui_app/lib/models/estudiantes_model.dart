@@ -1,6 +1,8 @@
 class Estudiante {
   final String id;
-  final String usuarioId;
+  final String? nombre;
+  final String? apellido;
+ 
   final String? curso;
   final int? grupo;
   final double promedio;
@@ -17,7 +19,9 @@ class Estudiante {
 
   Estudiante({
     required this.id,
-    required this.usuarioId,
+   
+    this.nombre,
+    this.apellido,
     this.curso,
     this.grupo,
     this.promedio = 0,
@@ -35,35 +39,40 @@ class Estudiante {
 
   // Convertir desde JSON (por ejemplo desde Supabase)
   factory Estudiante.fromJson(Map<String, dynamic> json) {
-    return Estudiante(
-      id: json['id'],
-      usuarioId: json['usuario_id'],
-      curso: json['curso'],
-      grupo: json['grupo'],
-      promedio: (json['promedio'] ?? 0).toDouble(),
-      pin: json['pin'],
-      maestroId: json['maestro_id'],
-      xpTotal: json['xp_total'] ?? 0,
-      xpHoy: json['xp_hoy'] ?? 0,
-      rachaDias: json['racha_dias'] ?? 0,
-      ultimaActividad: json['ultima_actividad'] != null
-          ? DateTime.parse(json['ultima_actividad'])
-          : null,
-      leccionesCompletadasTotal:
-          json['lecciones_completadas_total'] ?? 0,
-      escaneosExitosos: json['escaneos_exitosos'] ?? 0,
-      leccionesDesbloqueadas:
-          List<String>.from(json['lecciones_desbloqueadas'] ?? []),
-      logrosDesbloqueados:
-          List<String>.from(json['logros_desbloqueados'] ?? []),
-    );
-  }
+  return Estudiante(
+    id: json['id'],
+    
+
+    // 👇 VIENEN DEL JOIN
+    nombre: json['usuario']?['nombre'],
+    apellido: json['usuario']?['apellido'],
+
+    curso: json['curso'],
+    grupo: json['grupo'],
+    promedio: (json['promedio'] ?? 0).toDouble(),
+    pin: json['pin'],
+    maestroId: json['maestro_id'],
+    xpTotal: json['xp_total'] ?? 0,
+    xpHoy: json['xp_hoy'] ?? 0,
+    rachaDias: json['racha_dias'] ?? 0,
+    ultimaActividad: json['ultima_actividad'] != null
+        ? DateTime.parse(json['ultima_actividad'])
+        : null,
+    leccionesCompletadasTotal:
+        json['lecciones_completadas_total'] ?? 0,
+    escaneosExitosos: json['escaneos_exitosos'] ?? 0,
+    leccionesDesbloqueadas:
+        List<String>.from(json['lecciones_desbloqueadas'] ?? []),
+    logrosDesbloqueados:
+        List<String>.from(json['logros_desbloqueados'] ?? []),
+  );
+}
 
   // Convertir a JSON (para insertar/actualizar)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'usuario_id': usuarioId,
+    
       'curso': curso,
       'grupo': grupo,
       'promedio': promedio,

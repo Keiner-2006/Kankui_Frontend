@@ -131,7 +131,6 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     // Crear objeto Estudiante (sin PIN, la BD lo generará)
     final estudiante = Estudiante(
       id: const Uuid().v4(),
-      usuarioId: user.id,
       curso: _gradoSeleccionado,
       grupo: null,
       pin: '', // Temporal, será reemplazado por la BD
