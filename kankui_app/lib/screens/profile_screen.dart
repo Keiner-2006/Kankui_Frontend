@@ -457,15 +457,18 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildLinkButton(context, 'Cabildo', Icons.groups_outlined),
-              const SizedBox(width: 12),
-              _buildLinkButton(context, 'Créditos', Icons.favorite_outline),
-              const SizedBox(width: 12),
-              _buildLinkButton(context, 'Ayuda', Icons.help_outline),
+              Expanded(
+                child: Text(
+                  "Texto largo aquí", // deja tu texto actual
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              ),
+              SizedBox(width: 8),
+              Text("Otro"), // tu segundo widget
             ],
-          ),
+          )
         ],
       ),
     );

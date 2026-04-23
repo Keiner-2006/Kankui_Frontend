@@ -13,7 +13,13 @@ final GetIt locator = GetIt.instance;
 void setupLocator() {
   locator.registerLazySingleton<PalabraLocal>(() => PalabraLocal());
   locator.registerLazySingleton<SupabaseService>(() => SupabaseService());
-  locator.registerLazySingleton<SyncService>(() => SyncService());
+  
+  // Versión de Alejandro (requiere cliente)
+  locator.registerLazySingleton<SyncService>(
+    () => SyncService(Supabase.instance.client),
+  );
+  
+  // Repositorios de Keiner
   locator.registerLazySingleton<UsuarioRepository>(() => UsuarioRepository(Supabase.instance.client));
   locator.registerLazySingleton<EstudianteRepository>(() => EstudianteRepository(Supabase.instance.client));
   locator.registerLazySingleton<MaestroRepository>(() => MaestroRepository(Supabase.instance.client));

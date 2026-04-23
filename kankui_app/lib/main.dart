@@ -9,9 +9,9 @@ import 'data/local/palabra_local.dart';
 import 'data/sync/sync_service.dart';
 
 void main() async {
+
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔥 INICIALIZAR SUPABASE (ANTES DE TODO)
   await Supabase.initialize(
     url: 'https://jghnbyuanxxhtpllazmq.supabase.co',
     anonKey:
@@ -23,7 +23,8 @@ void main() async {
 
   await locator<PalabraLocal>().insertarPalabra("hola", "hello");
 
-  await locator<SyncService>().sincronizarPalabras();
+  //await locator<SyncService>().sincronizarPalabras();
+  await locator<SyncService>().syncApp();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

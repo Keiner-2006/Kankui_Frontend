@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
 import 'package:get_it/get_it.dart';
 import '../repositories/maestro_repository.dart';
-
+import 'package:kankui_app/models/maestro_model.dart';
+import '../services/auth_services.dart';
 // ─────────────────────────────────────────────
 // COLORES
 // ─────────────────────────────────────────────
@@ -112,7 +114,7 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Tarjeta Docente ← ahora navega al Portal Docente
+              // Tarjeta Docente
               _RoleCard(
                 icon: Icons.person_pin_outlined,
                 title: 'Soy Docente',
@@ -269,15 +271,46 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
 
-    if (mounted) {
+    try {
+      // TODO: Reemplaza esto con tu lógica real de autenticación de estudiantes
+      // Por ejemplo: consultar tabla 'estudiante' con id y pin
+   /*   final perfil = await Supabase.instance.client
+       .from('estudiante')
+    .select('''
+      *,
+      usuario:usuario_id (*)
+    ''')
+    .eq('usuario.id', _idController.text.trim()) // Buscar por ID de usuario
+    .eq('pin', _pinController.text)
+    .maybeSingle();
+
+      if (!mounted) return;
+
+      if (perfil == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ID o PIN incorrecto'),
+            backgroundColor: LoginColors.brown,
+          ),
+        );
+        return;
+      }
+*/
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al iniciar sesión: ${e.toString()}'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -453,10 +486,12 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
     super.dispose();
   }
 
+  // ─── LOGIN DOCENTE CON SUPABASE ───────────────
   Future<void> _handleLogin() async {
-  final email = _emailController.text.trim();
+     final email = _emailController.text.trim();
   final password = _passwordController.text;
 
+  // Validaciones básicas
   if (email.isEmpty || password.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -470,7 +505,7 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
   if (!email.contains('@')) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Ingresa un correo institucional válido'),
+        content: Text('Ingresa un correo válido'),
         backgroundColor: LoginColors.brown,
       ),
     );
@@ -478,33 +513,70 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
   }
 
   setState(() => _isLoading = true);
-  await Future.delayed(const Duration(milliseconds: 1500));
-  if (!mounted) return;
-  setState(() => _isLoading = false);
+  
+  try {
+    // 🔐 SOLO LOGIN CON SUPABASE AUTH
+   final res = await AuthService().login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
 
-  // ✅ CREAR EL OBJETO PROFESOR con los datos del login
-  final profesorAutenticado = Profesor(
-    nombre: 'Nombre del docente',     // ← Debes obtenerlo de tu API/backend
-    apellido: 'Apellido',             // ← Debes obtenerlo de tu API/backend
-    correo: email,                    // ← Usamos el email ingresado
-    institucion: 'I.E. Indígena Atánquez', // ← Puede venir del backend
-  );
+    if (!mounted) return;
 
-  if (mounted) {
+    final user = res.user;
+
+    if (user == null) {
+      throw Exception('Credenciales inválidas');
+    }
+
+    // 👇 CREAMOS UN PROFESOR BÁSICO (SIN BD)
+    final profesorAutenticado = Profesor(
+      nombre: 'Docente',
+      apellido: '',
+      correo: user.email ?? '',
+      institucion: 'I.E. Indígena Atánquez',
+    );
+
+    // 🚀 ENTRAR DIRECTO
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminPanelPage(
-          profesor: profesorAutenticado,  // ← AHORA SÍ ESTÁ DEFINIDO
-        ),
+        builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
       ),
     );
+    } on AuthException catch (e) {
+      // Error específico de Supabase Auth (credenciales inválidas, etc.)
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_traducirErrorAuth(e.message)),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: ${e.toString()}'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-}
- 
 
- 
-
+  // Traduce los mensajes de error de Supabase al español
+  String _traducirErrorAuth(String mensaje) {
+    if (mensaje.contains('Invalid login credentials')) {
+      return 'Correo o contraseña incorrectos';
+    } else if (mensaje.contains('Email not confirmed')) {
+      return 'Debes confirmar tu correo antes de ingresar';
+    } else if (mensaje.contains('Too many requests')) {
+      return 'Demasiados intentos. Espera unos minutos';
+    }
+    return 'Error de autenticación: $mensaje';
+  }
 
   void _handleForgotPassword() {
     showDialog(
@@ -528,7 +600,8 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
             onPressed: () => Navigator.pop(context),
             child: const Text(
               'Entendido',
-              style: TextStyle(color: LoginColors.brown, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: LoginColors.brown, fontWeight: FontWeight.w700),
             ),
           ),
         ],

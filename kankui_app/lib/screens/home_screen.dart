@@ -9,11 +9,12 @@ import 'lessons_screen.dart';
 import 'qr_scanner_screen.dart';
 import 'ranking_screen.dart';
 import 'profile_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/sync/sync_service.dart';
 import '../models/categoria_model.dart';
 import '../repositories/categoria_repository.dart';
 import '../services/service_locator.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -24,34 +25,40 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<CategoriaModel> _categorias = [];
   bool _loadingCategorias = true;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-
     _fetchData();
   }
 
   Future<void> _fetchData() async {
-    // Sincronizar aplicación
-    final syncService = SyncService();
-    await syncService.sincronizarPalabras();
+    try {
+      // Sincronizar aplicación (Versión Alejandro)
+      final syncService = SyncService(Supabase.instance.client);
+      await syncService.syncApp();
 
-    // Cargar categorías
-    final repo = locator<CategoriaRepository>();
-    final categorias = await repo.getCategorias();
+      // Cargar categorías (Versión Keiner)
+      final repo = locator<CategoriaRepository>();
+      final categorias = await repo.getCategorias();
 
-    if (mounted) {
-      setState(() {
-        _categorias = categorias;
-        _loadingCategorias = false;
-      });
+      if (mounted) {
+        setState(() {
+          _categorias = categorias;
+          _loadingCategorias = false;
+        });
+      }
+    } catch (e) {
+      print('Error en fetchData: $e');
+      if (mounted) {
+        setState(() {
+          _loadingCategorias = false;
+        });
+      }
     }
   }
 
-  int _currentIndex = 0;
-
-  // Estado simulado del usuario
   final UserProgress _userProgress = const UserProgress(
     xpTotal: 450,
     xpHoy: 35,

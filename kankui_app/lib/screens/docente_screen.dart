@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/repositories/estudiante_repository.dart';
 import 'package:kankui_app/screens/inscribirestudiante_screen.dart';
 import 'package:kankui_app/services/service_locator.dart';
 import 'package:kankui_app/data/remote/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 // ============================================================
@@ -154,51 +156,57 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   /// );
   /// ```
   Future<void> _cargarEstudiantes() async {
-    // Reinicia estado antes de cada carga (útil en pull-to-refresh)
+  print('🚀 Iniciando carga de estudiantes...');
+
+  setState(() {
+    _cargando = true;
+    _error = null;
+  });
+
+  try {
+    final repo = EstudianteRepository(Supabase.instance.client);
+
+    print('📡 Llamando a Supabase...');
+    final data = await repo.obtenerTodos();
+
+    print('📦 Datos crudos recibidos: $data');
+    print('📊 Cantidad: ${data.length}');
+
+    final datos = data.map((e) {
+      print('👤 Procesando estudiante: ${e.toJson()}');
+
+      return Estudiante(
+        id: e.id,
+        nombre: e.nombre ?? 'Sin nombre',
+        apellido: e.apellido ?? '',
+        pin: e.pin ?? '0000',
+      );
+    }).toList();
+
+    print('✅ Datos mapeados: $datos');
+
+    if (!mounted) return;
+
     setState(() {
-      _cargando = true;
-      _error = null;
+      _todosLosEstudiantes = datos;
+      _estudiantesFiltrados = datos;
+      _cargando = false;
     });
 
-    try {
-      // ── [API REAL] Sustituye estas líneas por tu llamada real ──
-      await Future.delayed(
-          const Duration(milliseconds: 900)); // simula latencia
+    print('🎉 UI actualizada correctamente');
 
-      final datos = [
-        const Estudiante(
-            id: '1045231789', nombre: 'Juan', apellido: 'Kakuamo', pin: '4281'),
-        const Estudiante(
-            id: '1043567821',
-            nombre: 'María',
-            apellido: 'Izquierdo',
-            pin: '3947'),
-        const Estudiante(
-            id: '1044890234', nombre: 'Carlos', apellido: 'Ríos', pin: '5612'),
-        const Estudiante(
-            id: '1042341567', nombre: 'Ana', apellido: 'Torres', pin: '2834'),
-        const Estudiante(
-            id: '1045678923',
-            nombre: 'Luis',
-            apellido: 'Villafaña',
-            pin: '7195'),
-      ];
-      // ── [FIN BLOQUE MOCK] ──────────────────────────────────────
+  } catch (e, stack) {
+    print('❌ ERROR COMPLETO: $e');
+    print('📍 STACKTRACE: $stack');
 
-      if (!mounted) return; // evita setState si el widget fue desmontado
-      setState(() {
-        _todosLosEstudiantes = datos;
-        _estudiantesFiltrados = datos;
-        _cargando = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'No se pudieron cargar los estudiantes.\nIntenta de nuevo.';
-        _cargando = false;
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _error = 'Error cargando estudiantes: $e';
+      _cargando = false;
+    });
   }
+}
 
   // ── Agregar estudiante ────────────────────────────────────────
 
