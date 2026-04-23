@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
+import 'package:get_it/get_it.dart';
 
 // ─────────────────────────────────────────────
 // COLORES
@@ -476,26 +477,48 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
   }
 
   setState(() => _isLoading = true);
-  await Future.delayed(const Duration(milliseconds: 1500));
-  if (!mounted) return;
-  setState(() => _isLoading = false);
 
-  // ✅ CREAR EL OBJETO PROFESOR con los datos del login
-  final profesorAutenticado = Profesor(
-    nombre: 'Nombre del docente',     // ← Debes obtenerlo de tu API/backend
-    apellido: 'Apellido',             // ← Debes obtenerlo de tu API/backend
-    correo: email,                    // ← Usamos el email ingresado
-    institucion: 'I.E. Indígena Atánquez', // ← Puede venir del backend
-  );
+  try {
+    final maestroRepo = GetIt.I<MaestroRepository>();
+    final maestro = await maestroRepo.obtenerMaestroPorEmail(email);
 
-  if (mounted) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminPanelPage(
-          profesor: profesorAutenticado,  // ← AHORA SÍ ESTÁ DEFINIDO
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (maestro == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontró un docente con ese correo'),
+          backgroundColor: LoginColors.brown,
         ),
-      ),
+      );
+      return;
+    }
+
+    // ✅ CREAR EL OBJETO PROFESOR con los datos del maestro encontrado
+    final profesorAutenticado = Profesor(
+      nombre: maestro.usuarioId, // Guardamos el usuario_id para luego obtener el nombre
+      apellido: '',
+      correo: email,
+      institucion: 'I.E. Indígena Atánquez',
+    );
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminPanelPage(
+            profesor: profesorAutenticado,
+            maestroId: maestro.id, // ← Pasamos el ID del maestro
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
     );
   }
 }

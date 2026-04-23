@@ -78,7 +78,10 @@ class InscribirEstudiantePage extends StatefulWidget {
   /// TODO: conectar al repositorio/BLoC para persistir en la API.
   final void Function(NuevoEstudianteResult resultado)? onGuardar;
 
-  const InscribirEstudiantePage({super.key, this.onGuardar});
+  /// ID del maestro que está registrando al estudiante
+  final String? maestroId;
+
+  const InscribirEstudiantePage({super.key, this.onGuardar, this.maestroId});
 
   @override
   State<InscribirEstudiantePage> createState() =>
@@ -101,10 +104,19 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   UsuarioModel? _usuarioGuardado;
   EstudianteModel? _estudianteGuardado;
 
+  /// ID del maestro (recibido del padre)
+  String? _maestroId;
+
   /// true mientras se simula la llamada a la API.
   bool _guardando = false;
 
   // ── Ciclo de vida ────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    _maestroId = widget.maestroId;
+  }
 
   @override
   void dispose() {
@@ -161,6 +173,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
       curso: _gradoSeleccionado,
       grupo: 1,
       pin: null, // La base de datos generará el PIN automáticamente
+      maestroId: _maestroId, // ← Asociamos al maestro que lo registró
     );
 
     try {

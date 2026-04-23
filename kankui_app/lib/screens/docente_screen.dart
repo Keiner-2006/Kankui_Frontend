@@ -88,6 +88,9 @@ class AdminPanelPage extends StatefulWidget {
   /// Flujo esperado: Login → envía Profesor → AdminPanel carga estudiantes.
   final Profesor profesor;
 
+  /// ID del maestro (para asociar estudiantes)
+  final String? maestroId;
+
   /// Callback al pulsar "+" para agregar un estudiante.
   final VoidCallback? onAgregarEstudiante;
 
@@ -97,6 +100,7 @@ class AdminPanelPage extends StatefulWidget {
   const AdminPanelPage({
     super.key,
     required this.profesor,
+    this.maestroId,
     this.onAgregarEstudiante,
     this.onExportar,
   });
@@ -704,7 +708,9 @@ class _AddFab extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => const InscribirEstudiantePage()),
+                  builder: (_) => InscribirEstudiantePage(
+                        maestroId: widget.maestroId, // ← Pasamos el ID del maestro
+                      )),
             );
           },
       backgroundColor: _AppColors.accent,
