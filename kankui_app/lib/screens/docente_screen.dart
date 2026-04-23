@@ -281,7 +281,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       ),
 
       // ── FAB AGREGAR ─────────────────────────────────────────
-      floatingActionButton: _AddFab(onPressed: widget.onAgregarEstudiante),
+      floatingActionButton: _AddFab(
+        onPressed: widget.onAgregarEstudiante,
+        maestroId: widget.maestroId,
+      ),
     );
   }
 
@@ -696,8 +699,9 @@ class _PinBadge extends StatelessWidget {
 
 class _AddFab extends StatelessWidget {
   final VoidCallback? onPressed;
+  final String? maestroId;
 
-  const _AddFab({this.onPressed});
+  const _AddFab({this.onPressed, this.maestroId});
 
   @override
   Widget build(BuildContext context) {
@@ -709,7 +713,7 @@ class _AddFab extends StatelessWidget {
               context,
               MaterialPageRoute(
                   builder: (_) => InscribirEstudiantePage(
-                        maestroId: widget.maestroId, // ← Pasamos el ID del maestro
+                        maestroId: maestroId, // ← Pasamos el ID del maestro
                       )),
             );
           },
