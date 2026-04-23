@@ -23,8 +23,8 @@ void main() async {
 
   await locator<PalabraLocal>().insertarPalabra("hola", "hello");
 
-  await locator<SyncService>().sincronizarPalabras();
-
+  //await locator<SyncService>().sincronizarPalabras();
+  await locator<SyncService>().syncApp();
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
