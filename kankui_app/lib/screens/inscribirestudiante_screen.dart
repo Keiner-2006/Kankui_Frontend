@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
 import 'package:uuid/uuid.dart';
+import '../models/usuario_model.dart';
 import '../models/estudiantes_model.dart';
+import '../repositories/usuario_repository.dart';
 import '../repositories/estudiante_repository.dart';
 
 // ============================================================
@@ -95,6 +97,10 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   /// PIN generado al guardar. null = aún no generado.
   String? _pinGenerado;
 
+  /// Usuario y estudiante guardados (para acceso después de los try-catch)
+  UsuarioModel? _usuarioGuardado;
+  EstudianteModel? _estudianteGuardado;
+
   /// true mientras se simula la llamada a la API.
   bool _guardando = false;
 
@@ -109,76 +115,116 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
   // ── Lógica ──────────────────────────────────────────────────
 
-  /// Genera un PIN numérico de 4 dígitos.
-  /// TODO: en producción solicitar el PIN al backend para garantizar unicidad.
-  String _generarPin() {
-    final rand = Random.secure();
-    return (1000 + rand.nextInt(9000)).toString();
-  }
-
-  /// Valida el formulario, genera el PIN y llama al callback.
+  /// Valida el formulario, crea el usuario y luego el estudiante vinculado.
   Future<void> _guardarYGenerar() async {
-    // Cierra el teclado
     FocusScope.of(context).unfocus();
-
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _guardando = true);
 
-    // ── [API REAL] Llamada al repositorio ──
-    final repo = GetIt.I<EstudianteRepository>();
-    final uuid = const Uuid().v4();
-    final pin = _generarPin();
-    
-    final nuevoEstudiante = EstudianteModel(
-      id: uuid,
-      usuarioId: 'US_$uuid', // TODO: Aquí deberías enlazar con el UID de Auth si lo tienes
-      curso: _gradoSeleccionado,
-      grupo: 1, // Por defecto o agregar campo en UI
-      pin: pin,
-      // Los datos de gamificación inicializan base en el modelo internamente
+    final usuarioRepo = GetIt.I<UsuarioRepository>();
+    final estudianteRepo = GetIt.I<EstudianteRepository>();
+    final usuarioId = const Uuid().v4();
+
+    // 1. Crear Usuario (datos personales)
+    final nuevoUsuario = UsuarioModel(
+      id: usuarioId,
+      nombre: _nombreController.text.trim(),
+      identificacion: int.parse(_idController.text.trim()),
+      rol: 'estudiante',
     );
 
-    final exito = await repo.guardarEstudiante(nuevoEstudiante);
+    try {
+      _usuarioGuardado = await usuarioRepo.guardarUsuario(nuevoUsuario);
 
-    if (!exito) {
-      if (mounted) {
+      if (_usuarioGuardado == null) {
+        if (!mounted) return;
         setState(() => _guardando = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar el estudiante. Revisa tu conexión.')),
+          const SnackBar(content: Text('Error al guardar los datos personales (usuario)')),
         );
+        return;
       }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _guardando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
       return;
     }
-    // ── [FIN LLAMADA] ───────────────────────────────────────────────
 
-    if (!mounted) return;
+    // 2. Crear Estudiante (vinculado al usuario)
+    final nuevoEstudiante = EstudianteModel(
+      id: const Uuid().v4(),
+      usuarioId: _usuarioGuardado!.id,
+      curso: _gradoSeleccionado,
+      grupo: 1,
+      pin: null, // La base de datos generará el PIN automáticamente
+    );
+
+    try {
+      _estudianteGuardado = await estudianteRepo.guardarEstudiante(nuevoEstudiante);
+
+      if (!mounted) return;
+
+      if (_estudianteGuardado == null) {
+        setState(() => _guardando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al guardar el estudiante. Revisa tu conexión o la configuración de la base de datos.')),
+        );
+        return;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _guardando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error estudiante: ${e.toString()}')),
+      );
+      return;
+    }
 
     setState(() {
-      _pinGenerado = pin;
-      _guardando   = false;
+      _pinGenerado = _estudianteGuardado!.pin;
+      _guardando = false;
     });
 
     final resultado = NuevoEstudianteResult(
       nombreCompleto: _nombreController.text.trim(),
       identificacion: _idController.text.trim(),
       grado: _gradoSeleccionado!,
-      pin: pin,
+      pin: _estudianteGuardado!.pin!,
     );
 
     widget.onGuardar?.call(resultado);
-    _mostrarDialogoExito(resultado);
+    await _mostrarDialogoExito(resultado);
+
+    // Limpiar campos después del registro exitoso
+    _nombreController.clear();
+    _idController.clear();
+    setState(() {
+      _gradoSeleccionado = null;
+      _pinGenerado = null;
+    });
+
+    // Mostrar mensaje de éxito
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('¡Estudiante registrado exitosamente!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
-  void _mostrarDialogoExito(NuevoEstudianteResult r) {
-    showDialog(
+  Future<void> _mostrarDialogoExito(NuevoEstudianteResult r) async {
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => _DialogoExito(
         resultado: r,
         onAceptar: () {
           Navigator.of(context).pop(); // cierra diálogo
-          Navigator.of(context).pop(); // regresa al panel
+          // No regresa al panel, se queda en la página para registrar más estudiantes
         },
       ),
     );
