@@ -46,6 +46,7 @@ class DatabaseService {
         termino TEXT NOT NULL,
         pronunciacion TEXT,
         traduccion TEXT,
+        sync_status TEXT,
         audio_url TEXT,
         categoria_id TEXT,
         FOREIGN KEY (categoria_id) REFERENCES categoria(id)
