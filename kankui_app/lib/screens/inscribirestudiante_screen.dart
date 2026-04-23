@@ -1,7 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:kankui_app/services/docenteservices.dart';
+import '../models/estudiantes_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 // ============================================================
 // PALETA DE COLORES (misma que AdminPanelPage)
 // ============================================================
@@ -82,6 +85,7 @@ class InscribirEstudiantePage extends StatefulWidget {
 class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   // ── Formulario ───────────────────────────────────────────────
   final _formKey = GlobalKey<FormState>();
+  final docenteservice = DocenteService();
 
   final _nombreController = TextEditingController();
   final _idController     = TextEditingController();
@@ -107,43 +111,73 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
   /// Genera un PIN numérico de 4 dígitos.
   /// TODO: en producción solicitar el PIN al backend para garantizar unicidad.
-  String _generarPin() {
-    final rand = Random.secure();
-    return (1000 + rand.nextInt(9000)).toString();
-  }
-
+ 
   /// Valida el formulario, genera el PIN y llama al callback.
-  Future<void> _guardarYGenerar() async {
-    // Cierra el teclado
-    FocusScope.of(context).unfocus();
+ Future<void> _guardarYGenerar() async {
+  // Cierra el teclado
+  FocusScope.of(context).unfocus();
 
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _guardando = true);
+  setState(() => _guardando = true);
 
-    // ── [API REAL] Reemplaza este bloque por tu llamada al repositorio ──
-    await Future.delayed(const Duration(milliseconds: 800)); // simula latencia
-    final pin = _generarPin();
-    // ── [FIN BLOQUE MOCK] ───────────────────────────────────────────────
-
+  try {
+    // Obtener usuario autenticado
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      throw Exception('Usuario no autenticado');
+    }
+    
+    // Crear objeto Estudiante (sin PIN, la BD lo generará)
+    final estudiante = Estudiante(
+      id: const Uuid().v4(),
+      usuarioId: user.id,
+      curso: _gradoSeleccionado,
+      grupo: null,
+      pin: '', // Temporal, será reemplazado por la BD
+      ultimaActividad: DateTime.now(),
+    );
+    
+    // Crear estudiante con PIN generado por Supabase
+    final estudianteCreado = await docenteservice.crearEstudianteConPinUnico(
+      estudiante,
+      user.id,
+    );
+    final pinGenerado = estudianteCreado.pin;
+    if (pinGenerado == null || pinGenerado.isEmpty) {
+      throw Exception('PIN generado inválido');
+    }
+    
     if (!mounted) return;
-
+    
     setState(() {
-      _pinGenerado = pin;
-      _guardando   = false;
+      _pinGenerado = pinGenerado; // PIN generado por la BD
+      _guardando = false;
     });
-
+    
     final resultado = NuevoEstudianteResult(
       nombreCompleto: _nombreController.text.trim(),
       identificacion: _idController.text.trim(),
       grado: _gradoSeleccionado!,
-      pin: pin,
+      pin: pinGenerado,
     );
-
+    
     widget.onGuardar?.call(resultado);
     _mostrarDialogoExito(resultado);
+    
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _guardando = false);
+    
+    // Mostrar error
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al guardar: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
-
+}
   void _mostrarDialogoExito(NuevoEstudianteResult r) {
     showDialog(
       context: context,

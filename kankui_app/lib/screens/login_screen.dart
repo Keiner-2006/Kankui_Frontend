@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
+import 'package:kankui_app/models/maestro_model.dart';
 
 // ─────────────────────────────────────────────
 // COLORES
@@ -110,7 +112,7 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // Tarjeta Docente ← ahora navega al Portal Docente
+              // Tarjeta Docente
               _RoleCard(
                 icon: Icons.person_pin_outlined,
                 title: 'Soy Docente',
@@ -267,15 +269,43 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (!mounted) return;
-    setState(() => _isLoading = false);
 
-    if (mounted) {
+    try {
+      // TODO: Reemplaza esto con tu lógica real de autenticación de estudiantes
+      // Por ejemplo: consultar tabla 'estudiantes' con id y pin
+      final perfil = await Supabase.instance.client
+          .from('estudiantes')
+          .select()
+          .eq('codigo', _idController.text.trim())
+          .eq('pin', _pinController.text)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (perfil == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ID o PIN incorrecto'),
+            backgroundColor: LoginColors.brown,
+          ),
+        );
+        return;
+      }
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al iniciar sesión: ${e.toString()}'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -451,58 +481,117 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
     super.dispose();
   }
 
+  // ─── LOGIN DOCENTE CON SUPABASE ───────────────
   Future<void> _handleLogin() async {
-  final email = _emailController.text.trim();
-  final password = _passwordController.text;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor completa todos los campos'),
-        backgroundColor: LoginColors.brown,
-      ),
-    );
-    return;
-  }
-
-  if (!email.contains('@')) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ingresa un correo institucional válido'),
-        backgroundColor: LoginColors.brown,
-      ),
-    );
-    return;
-  }
-
-  setState(() => _isLoading = true);
-  await Future.delayed(const Duration(milliseconds: 1500));
-  if (!mounted) return;
-  setState(() => _isLoading = false);
-
-  // ✅ CREAR EL OBJETO PROFESOR con los datos del login
-  final profesorAutenticado = Profesor(
-    nombre: 'Nombre del docente',     // ← Debes obtenerlo de tu API/backend
-    apellido: 'Apellido',             // ← Debes obtenerlo de tu API/backend
-    correo: email,                    // ← Usamos el email ingresado
-    institucion: 'I.E. Indígena Atánquez', // ← Puede venir del backend
-  );
-
-  if (mounted) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminPanelPage(
-          profesor: profesorAutenticado,  // ← AHORA SÍ ESTÁ DEFINIDO
+    // Validaciones básicas
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todos los campos'),
+          backgroundColor: LoginColors.brown,
         ),
-      ),
-    );
+      );
+      return;
+    }
+
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa un correo institucional válido'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Autenticar con Supabase Auth
+      final res = await Supabase.instance.client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      final user = res.user;
+      if (user == null) {
+        throw Exception('No se pudo autenticar. Verifica tus credenciales.');
+      }
+
+      // 2. Buscar el perfil del docente en la tabla 'docentes'
+      final perfil = await Supabase.instance.client
+          .from('docentes')
+          .select()
+          .eq('id', user.id)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (perfil == null) {
+        // El usuario existe en Auth pero no tiene perfil de docente
+        await Supabase.instance.client.auth.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No tienes perfil de docente registrado.'),
+            backgroundColor: LoginColors.brown,
+          ),
+        );
+        return;
+      }
+
+      // 3. Construir el objeto Profesor con datos reales
+      final profesorAutenticado = Profesor(
+        nombre: perfil['nombre'] ?? '',
+        apellido: perfil['apellido'] ?? '',
+        correo: email,
+        institucion: perfil['institucion'] ?? 'I.E. Indígena Atánquez',
+      );
+
+      // 4. Navegar al panel administrativo
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
+        ),
+      );
+    } on AuthException catch (e) {
+      // Error específico de Supabase Auth (credenciales inválidas, etc.)
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_traducirErrorAuth(e.message)),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: ${e.toString()}'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-}
- 
 
- 
-
+  // Traduce los mensajes de error de Supabase al español
+  String _traducirErrorAuth(String mensaje) {
+    if (mensaje.contains('Invalid login credentials')) {
+      return 'Correo o contraseña incorrectos';
+    } else if (mensaje.contains('Email not confirmed')) {
+      return 'Debes confirmar tu correo antes de ingresar';
+    } else if (mensaje.contains('Too many requests')) {
+      return 'Demasiados intentos. Espera unos minutos';
+    }
+    return 'Error de autenticación: $mensaje';
+  }
 
   void _handleForgotPassword() {
     showDialog(
@@ -526,7 +615,8 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
             onPressed: () => Navigator.pop(context),
             child: const Text(
               'Entendido',
-              style: TextStyle(color: LoginColors.brown, fontWeight: FontWeight.w700),
+              style: TextStyle(
+                  color: LoginColors.brown, fontWeight: FontWeight.w700),
             ),
           ),
         ],
