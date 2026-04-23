@@ -6,7 +6,7 @@ import '../widgets/sierra_path.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/user_stats_card.dart';
 import 'lessons_screen.dart';
-import 'scanner_screen.dart';
+import 'qr_scanner_screen.dart';
 import 'ranking_screen.dart';
 import 'profile_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _HomeContent(userProgress: _userProgress),
           LessonsScreen(userProgress: _userProgress),
-          const ScannerScreen(),
+          const QrScannerScreen(),
           RankingScreen(userProgress: _userProgress),
           ProfileScreen(userProgress: _userProgress),
         ],
