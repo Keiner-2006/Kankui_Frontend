@@ -12,10 +12,7 @@ class EstudianteRepository {
   // CREATE / UPDATE (Upsert)
   // Guarda un nuevo estudiante y devuelve el registro guardado (incluye PIN de la BD)
   // ==========================================
-/* Future<bool> guardarEstudiante(Estudiante estudiante) async {
-=======
   Future<Estudiante?> guardarEstudiante(Estudiante estudiante) async {
-
     try {
       final List<dynamic> response = await supabase
           .from(_tableName)
@@ -35,7 +32,7 @@ class EstudianteRepository {
       rethrow; // Propaga el error para diagnóstico
     }
   }
-*/
+
 
 Future<List<Estudiante>> obtenerRankingGlobal() async {
   try {

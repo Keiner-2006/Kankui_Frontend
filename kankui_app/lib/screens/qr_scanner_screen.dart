@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../repositories/categoria_repository.dart';
+import '../data/seed/vocablos_data.dart';
+import '../services/service_locator.dart';
+import '../models/categoria_model.dart';
+import 'lesson_detail_screen.dart';
 import 'kankuama_info_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -25,35 +31,90 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  Future<void> _onDetect(BarcodeCapture capture) async {
     if (_isProcessing) return;
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isNotEmpty) {
       final String? code = barcodes.first.rawValue;
       if (code != null) {
+        debugPrint('🔍 QR Detectado: $code');
+        
+        // 1. Vibración para confirmar detección
+        await HapticFeedback.lightImpact();
+
         setState(() {
           _isProcessing = true;
         });
 
-        // Pausar la cámara para no procesar múltiples veces
-        cameraController.stop();
+        // Pausar la cámara
+        await cameraController.stop();
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => KankuamaInfoScreen(qrCodeId: code),
-          ),
-        ).then((_) {
-          // Al volver de la pantalla de información, reactivamos la cámara
-          if (mounted) {
-            setState(() {
-              _isProcessing = false;
-            });
-            cameraController.start();
-          }
-        });
+        // 2. Lógica de redirección según el contenido
+        if (code.startsWith('KANKUI_LESSON:')) {
+          final String categoriaId = code.split(':').last;
+          await _navigateToLesson(categoriaId);
+        } else {
+          // Fallback a la pantalla de información general
+          await _navigateToInfo(code);
+        }
+
+        // 3. Reactivar al volver
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+          await cameraController.start();
+        }
       }
     }
+  }
+
+  Future<void> _navigateToLesson(String categoriaId) async {
+    try {
+      // Mostrar un indicador de carga si es necesario
+      final categoriaRepo = locator<CategoriaRepository>();
+      final CategoriaModel? categoria = await categoriaRepo.getCategoriaById(categoriaId);
+
+      if (categoria != null) {
+        final vocablos = VocablosData.obtenerPorCategoria(categoriaId);
+        
+        if (!mounted) return;
+        
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LessonDetailScreen(
+              categoria: categoria,
+              vocablos: vocablos,
+            ),
+          ),
+        );
+      } else {
+        _showError('No se encontró la lección para: $categoriaId');
+      }
+    } catch (e) {
+      _showError('Error al cargar la lección: $e');
+    }
+  }
+
+  Future<void> _navigateToInfo(String code) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => KankuamaInfoScreen(qrCodeId: code),
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
