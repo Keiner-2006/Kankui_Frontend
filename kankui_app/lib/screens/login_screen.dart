@@ -5,14 +5,9 @@ import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
 import 'package:get_it/get_it.dart';
 import '../repositories/maestro_repository.dart';
-<<<<<<< Updated upstream
-import 'package:kankui_app/models/maestro_model.dart';
+import '../models/maestro_model.dart';
 import '../services/auth_services.dart';
 import '../data/remote/supabase_service.dart';
-=======
-import '../models/maestro_model.dart';
-
->>>>>>> Stashed changes
 // ─────────────────────────────────────────────
 // COLORES
 // ─────────────────────────────────────────────
