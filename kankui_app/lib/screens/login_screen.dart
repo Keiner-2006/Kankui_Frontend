@@ -31,7 +31,9 @@ class LoginColors {
 // PANTALLA DE LOGIN PRINCIPAL (Selector de Rol)
 // ─────────────────────────────────────────────
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  final VoidCallback? onFinish;
+
+  const LoginScreen({super.key, this.onFinish});
 
   @override
   Widget build(BuildContext context) {
