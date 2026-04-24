@@ -4,6 +4,8 @@ import 'package:kankui_app/theme/app_theme.dart';
 import 'package:kankui_app/models/reto_model.dart';
 import 'package:kankui_app/models/pregunta_quiz_model.dart';
 import 'package:kankui_app/repositories/quiz_repository.dart';
+import 'package:kankui_app/data/local/user_repository.dart';
+import 'package:kankui_app/data/local/models_local.dart';
 import 'package:kankui_app/widgets/opcion_respuesta_widget.dart';
 import 'package:kankui_app/services/audio_service.dart';
 
@@ -444,7 +446,35 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
   }
 
   Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
-    debugPrint('Progreso guardado: $resultado');
+    final userRepo = UserRepository();
+
+    // 1. Guardar resultado del quiz en tabla resultado_quiz
+    final resultadoId = await userRepo.guardarResultadoQuiz(
+      widget.reto.id,
+      resultado,
+    );
+
+    debugPrint('Resultado guardado con ID: $resultadoId');
+
+    // 2. Actualizar estadísticas del estudiante (XP, contadores)
+    final correctas = resultado['correctas'] as int;
+    final xpGanado = correctas * 10;
+
+    await userRepo.addXP(xpGanado);
+    await userRepo.incrementarEscaneos(); // Incrementa actividad
+
+    // 3. Si es desde una lección, marcarla como completada
+    if (widget.reto.leccionId != null) {
+      try {
+        await userRepo.completarLeccion(widget.reto.leccionId!);
+        debugPrint('Lección ${widget.reto.leccionId} marcada como completada');
+      } catch (e) {
+        debugPrint('Error al marcar lección como completada: $e');
+      }
+    }
+
+    // 4. Actualizar racha de días
+    await userRepo.updateRacha();
   }
 
   void _mostrarConfirmacionSalida() {
