@@ -1,93 +1,292 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/repositories/estudiante_repository.dart';
+import 'package:kankui_app/screens/docente_screen.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/user_progress.dart';
-
-class RankingScreen extends StatelessWidget {
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kankui_app/models/estudiantes_model.dart';
+class RankingScreen extends StatefulWidget {
   final UserProgress userProgress;
 
   const RankingScreen({super.key, required this.userProgress});
 
   @override
+  State<RankingScreen> createState() => _RankingScreenState();
+}
+
+class _RankingScreenState extends State<RankingScreen> {
+  bool _loading = true;
+  late final EstudianteRepository _repo;
+  List<EstudianteModel> _ranking = [];
+  String? _errorMessage;
+
+  // Niveles de sabiduría definidos localmente
+  final List<_NivelSabiduria> _nivelesSabiduria = [
+    _NivelSabiduria(nivel: 1, nombre: 'Semilla',  xpRequerido: 0),
+    _NivelSabiduria(nivel: 2, nombre: 'Brote',    xpRequerido: 100),
+    _NivelSabiduria(nivel: 3, nombre: 'Raíz',     xpRequerido: 300),
+    _NivelSabiduria(nivel: 4, nombre: 'Hoja',     xpRequerido: 600),
+    _NivelSabiduria(nivel: 5, nombre: 'Flor',     xpRequerido: 1000),
+    _NivelSabiduria(nivel: 6, nombre: 'Fruto',    xpRequerido: 1500),
+    _NivelSabiduria(nivel: 7, nombre: 'Árbol',    xpRequerido: 2500),
+    _NivelSabiduria(nivel: 8, nombre: 'Bosque',   xpRequerido: 4000),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _repo = EstudianteRepository(Supabase.instance.client);
+    _cargarRanking();
+  }
+
+  Future<void> _cargarRanking() async {
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await _repo.obtenerRankingGlobal();
+      setState(() {
+        _ranking = data;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error al cargar el ranking: ${e.toString()}';
+        _loading = false;
+        _ranking = [];
+      });
+    }
+  }
+
+  // ─── Helpers de nivel ───────────────────────────────────────────────────────
+
+  String _obtenerNivelPorXP(int xp) {
+    for (int i = _nivelesSabiduria.length - 1; i >= 0; i--) {
+      if (xp >= _nivelesSabiduria[i].xpRequerido) {
+        return _nivelesSabiduria[i].nombre;
+      }
+    }
+    return _nivelesSabiduria.first.nombre;
+  }
+
+  int _obtenerNivelNumeroPorXP(int xp) {
+    for (int i = _nivelesSabiduria.length - 1; i >= 0; i--) {
+      if (xp >= _nivelesSabiduria[i].xpRequerido) {
+        return _nivelesSabiduria[i].nivel;
+      }
+    }
+    return 1;
+  }
+
+  int _calcularXPParaSiguienteNivel(int xpActual) {
+    final nivelActual = _obtenerNivelNumeroPorXP(xpActual);
+    final siguienteIndex = nivelActual; // 0-based → nivel 1 = índice 0
+    if (siguienteIndex >= _nivelesSabiduria.length) return 0;
+    return _nivelesSabiduria[siguienteIndex].xpRequerido - xpActual;
+  }
+
+  double _calcularProgresoNivel(int xpActual) {
+    final nivelActual = _obtenerNivelNumeroPorXP(xpActual);
+    final xpBase = nivelActual > 1
+        ? _nivelesSabiduria[nivelActual - 2].xpRequerido
+        : 0;
+    final xpTope = _nivelesSabiduria[nivelActual - 1].xpRequerido;
+    if (xpTope <= xpBase) return 1.0;
+    return ((xpActual - xpBase) / (xpTope - xpBase)).clamp(0.0, 1.0);
+  }
+
+  // ─── Build ──────────────────────────────────────────────────────────────────
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: CustomScrollView(
-        slivers: [
-          // Header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  KankuiIcons.circuloSabiduria(
-                    size: 36,
-                    color: AppColors.terracota,
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Círculo de Sabiduría',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              color: AppColors.terracota,
-                              fontWeight: FontWeight.bold,
+      child: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.terracota),
+            )
+          : RefreshIndicator(
+              onRefresh: _cargarRanking,
+              child: CustomScrollView(
+                slivers: [
+                  // Header
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          KankuiIcons.circuloSabiduria(
+                            size: 36,
+                            color: AppColors.terracota,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Círculo de Sabiduría',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineLarge
+                                      ?.copyWith(
+                                        color: AppColors.terracota,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                Text(
+                                  'El camino hacia la sabiduría ancestral',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(color: AppColors.textoClaro),
+                                ),
+                              ],
                             ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        'El camino hacia la sabiduría ancestral',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textoClaro,
+                    ),
+                  ),
+
+                  // Tu nivel actual
+                  SliverToBoxAdapter(child: _buildNivelActual(context)),
+
+                  // Banner de error (si existe)
+                  if (_errorMessage != null)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.red.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage!,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _cargarRanking,
+                                child: const Text('Reintentar'),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+
+                  // Título ranking + contador
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Ranking de la Comunidad',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(color: AppColors.textoOscuro),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.terracota.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${_ranking.length} participantes',
+                              style: TextStyle(
+                                color: AppColors.terracota,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
+
+                  // Lista vacía o lista de ranking
+                  if (_ranking.isEmpty)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Icon(Icons.people_outline,
+                                  size: 64, color: AppColors.textoClaro),
+                              SizedBox(height: 16),
+                              Text(
+                                'No hay estudiantes registrados',
+                                style: TextStyle(color: AppColors.textoClaro),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              _buildRankingItem(context, index),
+                          childCount: _ranking.length,
+                        ),
+                      ),
+                    ),
+
+                  // Logros
+                  SliverToBoxAdapter(child: _buildLogrosSection(context)),
+
+                  // Niveles de sabiduría
+                  SliverToBoxAdapter(child: _buildNivelesSection(context)),
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
               ),
             ),
-          ),
-
-          // Tu nivel actual
-          SliverToBoxAdapter(child: _buildNivelActual(context)),
-
-          // Ranking local
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Text(
-                'Ranking de la Comunidad',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textoOscuro,
-                ),
-              ),
-            ),
-          ),
-
-          // Lista de ranking
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return _buildRankingItem(context, index);
-              }, childCount: _rankingData.length),
-            ),
-          ),
-
-          // Tus logros
-          SliverToBoxAdapter(child: _buildLogrosSection(context)),
-
-          // Niveles de sabiduría
-          SliverToBoxAdapter(child: _buildNivelesSection(context)),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
-      ),
     );
   }
 
+  // ─── Nivel actual del usuario ────────────────────────────────────────────────
+
   Widget _buildNivelActual(BuildContext context) {
-    final nivel = userProgress.nivelActual;
+    final xpActual    = widget.userProgress.xpTotal;
+    final nivelNumero = _obtenerNivelNumeroPorXP(xpActual);
+    final nivelNombre = _obtenerNivelPorXP(xpActual);
+    final progreso    = _calcularProgresoNivel(xpActual);
+    final xpSiguiente = _calcularXPParaSiguienteNivel(xpActual);
+
+    const descripciones = {
+      'Semilla': 'Comienzas tu viaje en el conocimiento ancestral',
+      'Brote':   'Empiezas a crecer en sabiduría',
+      'Raíz':    'Te conectas con la tierra y la tradición',
+      'Hoja':    'Absorbes el conocimiento como la luz del sol',
+      'Flor':    'Compartes tu sabiduría con la comunidad',
+      'Fruto':   'Cosechas los frutos de tu aprendizaje',
+      'Árbol':   'Eres pilar de sabiduría para tu comunidad',
+      'Bosque':  'Has alcanzado la más alta sabiduría ancestral',
+    };
+    final descripcionNivel =
+        descripciones[nivelNombre] ?? 'Continúa tu camino de aprendizaje';
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -135,8 +334,10 @@ class RankingScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${nivel.nivel}',
-                        style: Theme.of(context).textTheme.headlineLarge
+                        '$nivelNumero',
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineLarge
                             ?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
@@ -152,8 +353,10 @@ class RankingScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      nivel.nombre,
-                      style: Theme.of(context).textTheme.headlineMedium
+                      nivelNombre,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
                           ?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -161,10 +364,10 @@ class RankingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      nivel.descripcion,
+                      descripcionNivel,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.8),
-                      ),
+                            color: Colors.white.withValues(alpha: 0.8),
+                          ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -174,24 +377,26 @@ class RankingScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          // Barra de progreso
+          // Barra de XP
           Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${userProgress.xpTotal} XP',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelLarge?.copyWith(color: Colors.white),
+                    '$xpActual XP',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelLarge
+                        ?.copyWith(color: Colors.white),
                   ),
-                  Text(
-                    '${userProgress.xpParaSiguienteNivel} XP para siguiente nivel',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.7),
+                  if (xpSiguiente > 0)
+                    Text(
+                      '$xpSiguiente XP para siguiente nivel',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -204,7 +409,7 @@ class RankingScreen extends StatelessWidget {
                 child: Stack(
                   children: [
                     FractionallySizedBox(
-                      widthFactor: userProgress.progresoNivel,
+                      widthFactor: progreso,
                       child: Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -225,19 +430,19 @@ class RankingScreen extends StatelessWidget {
               _buildStatItem(
                 context,
                 icon: Icons.local_fire_department_rounded,
-                value: '${userProgress.rachaDias}',
+                value: '${widget.userProgress.rachaDias}',
                 label: 'Racha',
               ),
               _buildStatItem(
                 context,
                 icon: Icons.school_rounded,
-                value: '${userProgress.leccionesCompletadas}',
+                value: '${widget.userProgress.leccionesCompletadas}',
                 label: 'Lecciones',
               ),
               _buildStatItem(
                 context,
                 icon: Icons.remove_red_eye_rounded,
-                value: '${userProgress.escaneoExitosos}',
+                value: '${widget.userProgress.escaneoExitosos}',
                 label: 'Escaneos',
               ),
             ],
@@ -267,24 +472,38 @@ class RankingScreen extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
         ),
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.white.withValues(alpha: 0.7),
-          ),
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
         ),
       ],
     );
   }
 
+  // ─── Ítem del ranking ────────────────────────────────────────────────────────
+  // Usa los campos reales del modelo Estudiante que vienen de Supabase
+
   Widget _buildRankingItem(BuildContext context, int index) {
-    final item = _rankingData[index];
-    final isCurrentUser = item['isCurrentUser'] as bool;
-    final position = index + 1;
+    final EstudianteModel item = _ranking[index];
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+
+    final isCurrentUser = item.usuarioId == currentUserId;
+    final position      = index + 1;
+
+    // Nombre completo desde la relación usuario
+  final nombreFinal =
+    '${item.nombre ?? ''} ${item.apellido ?? ''}'
+        .trim()
+        .ifEmpty('Sin nombre');
+    final xp    = item.xpTotal;
+    final racha = item.rachaDias;
+    final nivel = _obtenerNivelPorXP(xp);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -317,16 +536,14 @@ class RankingScreen extends StatelessWidget {
             ),
             child: Center(
               child: position <= 3
-                  ? const Icon(
-                      Icons.emoji_events_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    )
+                  ? const Icon(Icons.emoji_events_rounded,
+                      color: Colors.white, size: 20)
                   : Text(
                       '$position',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.labelLarge?.copyWith(color: Colors.white),
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelLarge
+                          ?.copyWith(color: Colors.white),
                     ),
             ),
           ),
@@ -347,36 +564,42 @@ class RankingScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Info
+          // Nombre y nivel
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    Text(
-                      item['nombre'] as String,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.textoOscuro,
-                        fontWeight: isCurrentUser
-                            ? FontWeight.bold
-                            : FontWeight.w500,
+                    Flexible(
+                      child: Text(
+                        nombreFinal,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(
+                              color: AppColors.textoOscuro,
+                              fontWeight: isCurrentUser
+                                  ? FontWeight.bold
+                                  : FontWeight.w500,
+                            ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (isCurrentUser) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: AppColors.terracota,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           'Tú',
-                          style: Theme.of(context).textTheme.bodySmall
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
                               ?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -387,39 +610,38 @@ class RankingScreen extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  item['nivel'] as String,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: AppColors.textoClaro),
+                  nivel,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppColors.textoClaro),
                 ),
               ],
             ),
           ),
-          // XP
+          // XP y racha
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${item['xp']} XP',
+                '$xp XP',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.terracota,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: AppColors.terracota,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.local_fire_department_rounded,
-                    size: 14,
-                    color: AppColors.doradoSol,
-                  ),
+                  const Icon(Icons.local_fire_department_rounded,
+                      size: 14, color: AppColors.doradoSol),
                   const SizedBox(width: 2),
                   Text(
-                    '${item['racha']} días',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textoClaro,
-                    ),
+                    '$racha días',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppColors.textoClaro),
                   ),
                 ],
               ),
@@ -435,15 +657,31 @@ class RankingScreen extends StatelessWidget {
       case 1:
         return AppColors.doradoSol;
       case 2:
-        return AppColors.textoClaro;
+        return const Color(0xFFC0C0C0); // Plata
       case 3:
-        return AppColors.terracota;
+        return const Color(0xFFCD7F32); // Bronce
       default:
         return AppColors.textoMedio;
     }
   }
 
+  // ─── Logros ──────────────────────────────────────────────────────────────────
+  // Los logros vienen de widget.userProgress.logrosDesbloqueados (List<String>?)
+  // que debe estar mapeado desde la columna logros_desbloqueados del schema.
+
   Widget _buildLogrosSection(BuildContext context) {
+    final logrosObtenidos =
+        widget.userProgress.logrosDesbloqueados ?? <String>[];
+
+    const todosLogros = [
+      {'nombre': 'Primera Palabra',    'key': 'primera_palabra',   'icono': Icons.star_rounded},
+      {'nombre': 'Racha 3 días',       'key': 'racha_3',           'icono': Icons.local_fire_department},
+      {'nombre': 'Ojo Ancestral',      'key': 'ojo_ancestral',     'icono': Icons.visibility},
+      {'nombre': 'Racha 7 días',       'key': 'racha_7',           'icono': Icons.local_fire_department},
+      {'nombre': 'Sabio Principiante', 'key': 'sabio_principiante','icono': Icons.school},
+      {'nombre': 'Explorador',         'key': 'explorador',        'icono': Icons.explore},
+    ];
+
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(20),
@@ -459,43 +697,31 @@ class RankingScreen extends StatelessWidget {
             children: [
               Text(
                 'Tus Logros',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.textoOscuro,
-                ),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineMedium
+                    ?.copyWith(color: AppColors.textoOscuro),
               ),
-              TextButton(onPressed: () {}, child: const Text('Ver todos')),
+              TextButton(
+                onPressed: () {},
+                child: const Text('Ver todos'),
+              ),
             ],
           ),
           const SizedBox(height: 16),
           Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: [
-              _buildLogroChip(
+            children: todosLogros.take(4).map((logro) {
+              final desbloqueado =
+                  logrosObtenidos.contains(logro['key'] as String);
+              return _buildLogroChip(
                 context,
-                'Primera Palabra',
-                Icons.star_rounded,
-                true,
-              ),
-              _buildLogroChip(
-                context,
-                'Racha 3 días',
-                Icons.local_fire_department,
-                true,
-              ),
-              _buildLogroChip(
-                context,
-                'Ojo Ancestral',
-                Icons.visibility,
-                false,
-              ),
-              _buildLogroChip(
-                context,
-                'Racha 7 días',
-                Icons.local_fire_department,
-                false,
-              ),
-            ],
+                logro['nombre'] as String,
+                logro['icono'] as IconData,
+                desbloqueado,
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -525,22 +751,26 @@ class RankingScreen extends StatelessWidget {
           Icon(
             icon,
             size: 18,
-            color: desbloqueado ? AppColors.doradoSol : AppColors.textoClaro,
+            color:
+                desbloqueado ? AppColors.doradoSol : AppColors.textoClaro,
           ),
           const SizedBox(width: 6),
           Text(
             nombre,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: desbloqueado
-                  ? AppColors.textoOscuro
-                  : AppColors.textoClaro,
-              fontWeight: desbloqueado ? FontWeight.w600 : FontWeight.normal,
-            ),
+                  color: desbloqueado
+                      ? AppColors.textoOscuro
+                      : AppColors.textoClaro,
+                  fontWeight:
+                      desbloqueado ? FontWeight.w600 : FontWeight.normal,
+                ),
           ),
         ],
       ),
     );
   }
+
+  // ─── Niveles de sabiduría ────────────────────────────────────────────────────
 
   Widget _buildNivelesSection(BuildContext context) {
     return Container(
@@ -550,19 +780,21 @@ class RankingScreen extends StatelessWidget {
         children: [
           Text(
             'Niveles de Sabiduría',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(color: AppColors.textoOscuro),
+            style: Theme.of(context)
+                .textTheme
+                .headlineMedium
+                ?.copyWith(color: AppColors.textoOscuro),
           ),
           const SizedBox(height: 16),
           SizedBox(
             height: 100,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: nivelesSabiduria.length,
+              itemCount: _nivelesSabiduria.length,
               itemBuilder: (context, index) {
-                final nivel = nivelesSabiduria[index];
-                final alcanzado = userProgress.xpTotal >= nivel.xpRequerido;
+                final nivel    = _nivelesSabiduria[index];
+                final alcanzado =
+                    widget.userProgress.xpTotal >= nivel.xpRequerido;
 
                 return Container(
                   width: 80,
@@ -580,14 +812,17 @@ class RankingScreen extends StatelessWidget {
                           border: Border.all(
                             color: alcanzado
                                 ? AppColors.verdeSelva
-                                : AppColors.textoClaro.withValues(alpha: 0.3),
+                                : AppColors.textoClaro
+                                    .withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
                         child: Center(
                           child: Text(
                             '${nivel.nivel}',
-                            style: Theme.of(context).textTheme.titleLarge
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
                                 ?.copyWith(
                                   color: alcanzado
                                       ? AppColors.verdeSelva
@@ -600,14 +835,17 @@ class RankingScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         nivel.nombre,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: alcanzado
-                              ? AppColors.textoOscuro
-                              : AppColors.textoClaro,
-                          fontWeight: alcanzado
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(
+                              color: alcanzado
+                                  ? AppColors.textoOscuro
+                                  : AppColors.textoClaro,
+                              fontWeight: alcanzado
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -624,62 +862,22 @@ class RankingScreen extends StatelessWidget {
   }
 }
 
-// Datos simulados del ranking
-final List<Map<String, dynamic>> _rankingData = [
-  {
-    'nombre': 'María Villazón',
-    'nivel': 'Árbol',
-    'xp': 3250,
-    'racha': 15,
-    'isCurrentUser': false,
-  },
-  {
-    'nombre': 'Juan Torres',
-    'nivel': 'Fruto',
-    'xp': 2100,
-    'racha': 8,
-    'isCurrentUser': false,
-  },
-  {
-    'nombre': 'Ana Maestre',
-    'nivel': 'Flor',
-    'xp': 1650,
-    'racha': 12,
-    'isCurrentUser': false,
-  },
-  {
-    'nombre': 'Carlos Arias',
-    'nivel': 'Hoja',
-    'xp': 1200,
-    'racha': 6,
-    'isCurrentUser': false,
-  },
-  {
-    'nombre': 'Tú',
-    'nivel': 'Raíz',
-    'xp': 450,
-    'racha': 5,
-    'isCurrentUser': true,
-  },
-  {
-    'nombre': 'Laura Mejía',
-    'nivel': 'Brote',
-    'xp': 380,
-    'racha': 3,
-    'isCurrentUser': false,
-  },
-  {
-    'nombre': 'Pedro Orozco',
-    'nivel': 'Brote',
-    'xp': 250,
-    'racha': 2,
-    'isCurrentUser': false,
-  },
-  {
-    'nombre': 'Diana Rojas',
-    'nivel': 'Semilla',
-    'xp': 120,
-    'racha': 1,
-    'isCurrentUser': false,
-  },
-];
+// ─── Modelo local ────────────────────────────────────────────────────────────
+
+class _NivelSabiduria {
+  final int nivel;
+  final String nombre;
+  final int xpRequerido;
+
+  const _NivelSabiduria({
+    required this.nivel,
+    required this.nombre,
+    required this.xpRequerido,
+  });
+}
+
+// ─── Extensión helper ────────────────────────────────────────────────────────
+
+extension _StringIfEmpty on String {
+  String ifEmpty(String fallback) => isEmpty ? fallback : this;
+}

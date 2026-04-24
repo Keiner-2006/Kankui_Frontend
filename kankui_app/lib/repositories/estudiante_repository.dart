@@ -33,6 +33,34 @@ class EstudianteRepository {
     }
   }
 
+Future<List<Estudiante>> obtenerRankingGlobal() async {
+  try {
+    final response = await supabase
+        .from(_tableName)
+        .select('''
+          id,
+          usuario_id,
+          xp_total,
+          racha_dias,
+          lecciones_completadas_total,
+          escaneos_exitosos,
+          logros_desbloqueados,
+          usuario:usuario_id (
+            nombre,
+            apellido
+          )
+        ''')
+        .order('xp_total', ascending: false);
+
+    return (response as List)
+        .map((json) => Estudiante.fromJson(json))
+        .toList();
+  } catch (e, stack) {
+    developer.log('Error ranking global: $e',
+        name: 'EstudianteRepository', error: e, stackTrace: stack);
+    return [];
+  }
+}
   // ==========================================
   // READ (Uno)
   // Obtiene un estudiante según el ID de usuario de autenticación
