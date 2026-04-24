@@ -261,59 +261,74 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
   }
 
   Future<void> _handleLogin() async {
-    if (_idController.text.isEmpty || _pinController.text.isEmpty) {
+  final identificacion = _idController.text.trim();
+  final pin = _pinController.text.trim();
+
+  if (identificacion.isEmpty || pin.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Por favor completa todos los campos'),
+        backgroundColor: LoginColors.brown,
+      ),
+    );
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    final supabase = Supabase.instance.client;
+
+    // 1. Buscar usuario por identificacion
+    final usuario = await supabase
+        .from('usuario')
+        .select('id, nombre, apellido')
+        .eq('identificacion', int.parse(identificacion))
+        .eq('rol', 'estudiante')
+        .maybeSingle();
+
+    if (usuario == null) {
+      throw Exception('No existe un estudiante con esa identificacion');
+    }
+
+    // 2. Buscar estudiante con ese usuario_id y verificar PIN
+    final estudiante = await supabase
+        .from('estudiante')
+        .select('*, usuario:usuario_id(*)')
+        .eq('usuario_id', usuario['id'])
+        .eq('pin', pin)
+        .maybeSingle();
+
+    if (!mounted) return;
+
+    if (estudiante == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Por favor completa todos los campos'),
+          content: Text('PIN incorrecto'),
           backgroundColor: LoginColors.brown,
         ),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    // 3. Login exitoso - navegar al HomeScreen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+    );
 
-    try {
-      // TODO: Reemplaza esto con tu lógica real de autenticación de estudiantes
-      // Por ejemplo: consultar tabla 'estudiante' con id y pin
-   /*   final perfil = await Supabase.instance.client
-       .from('estudiante')
-    .select('''
-      *,
-      usuario:usuario_id (*)
-    ''')
-    .eq('usuario.id', _idController.text.trim()) // Buscar por ID de usuario
-    .eq('pin', _pinController.text)
-    .maybeSingle();
-
-      if (!mounted) return;
-
-      if (perfil == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ID o PIN incorrecto'),
-            backgroundColor: LoginColors.brown,
-          ),
-        );
-        return;
-      }
-*/
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al iniciar sesión: ${e.toString()}'),
-          backgroundColor: LoginColors.brown,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: ${e.toString()}'),
+        backgroundColor: LoginColors.brown,
+      ),
+    );
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
