@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../models/categoria_model.dart';
 import '../data/seed/vocablos_data.dart';
+import '../services/audio_service.dart';
 import '../screens/quiz_screen.dart';
 
 class LessonDetailScreen extends StatefulWidget {
@@ -22,6 +23,12 @@ class LessonDetailScreen extends StatefulWidget {
 class _LessonDetailScreenState extends State<LessonDetailScreen> {
   int _currentIndex = 0;
   bool _showSignificado = false;
+
+  @override
+  void dispose() {
+    audioService.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -182,19 +189,9 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                             color: AppColors.terracota,
                           ),
                           iconSize: 28,
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('🔊 ${vocablo.fonetica}'),
-                                duration: const Duration(seconds: 1),
-                                backgroundColor: AppColors.terracota,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: vocablo.audioPath?.isNotEmpty == true
+                              ? () => _reproducirAudio(vocablo)
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -263,26 +260,43 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+          // Imagen de la palabra (más grande y visible)
+          if (vocablo.imagePath != null && vocablo.imagePath!.isNotEmpty)
+            Container(
+              width: 200,
+              height: 200,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(24),
+                image: DecorationImage(
+                  image: NetworkImage(vocablo.imagePath!),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: KankuiIcons.tejido(size: 48, color: Colors.white),
             ),
-            child: KankuiIcons.tejido(size: 40, color: Colors.white),
-          ),
-          const SizedBox(height: 32),
+
+          const SizedBox(height: 16),
           Text(
             vocablo.palabra,
             style: Theme.of(context).textTheme.displayLarge?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 48,
+                  fontSize: 42,
                   letterSpacing: 2,
                 ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
@@ -522,6 +536,20 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: const Text('¡Quiz completado exitosamente!'), backgroundColor: AppColors.verdeSelva, behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
+  Future<void> _reproducirAudio(Vocablo vocablo) async {
+    if (await audioService.play(vocablo.audioPath ?? '')) {
+      debugPrint('Audio reproduciendo: ${vocablo.palabra}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo reproducir el audio'),
+          backgroundColor: AppColors.terracota,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }

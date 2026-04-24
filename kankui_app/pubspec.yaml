@@ -18,6 +18,8 @@ dependencies:
   connectivity_plus: ^5.0.2  # Para detectar conexión
   get_it: ^7.6.4
   mobile_scanner: ^7.2.0
+  qr_flutter: ^4.1.0
+  audioplayers: ^5.0.0  # Reproducción de audios
 
 dev_dependencies:
   flutter_test:
@@ -26,8 +28,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  
-#  assets:
-#    - assets/images/
-#    - assets/audio/
-

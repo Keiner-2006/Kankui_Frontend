@@ -626,13 +626,13 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
         institucion: 'I.E. Indígena Atánquez',
       );
 
-      // 🚀 ENTRAR DIRECTO
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
-        ),
-      );
+    // 🚀 ENTRAR DIRECTO
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DocenteScreen(profesor: profesorAutenticado),
+      ),
+    );
     } on AuthException catch (e) {
       // Error específico de Supabase Auth (credenciales inválidas, etc.)
       if (!mounted) return;
