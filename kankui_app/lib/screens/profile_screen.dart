@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/user_progress.dart';
+import '../services/sesionmanager.dart';
 
 class ProfileScreen extends StatelessWidget {
   final UserProgress userProgress;
@@ -33,6 +34,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     final nivel = userProgress.nivelActual;
+    final usuario = SessionManager().usuario;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -76,22 +78,22 @@ class ProfileScreen extends StatelessWidget {
                   child: Text(
                     '${nivel.nivel}',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // Nombre
+          // Nombre real del usuario
           Text(
-            'Aprendiz Kankuamo',
+            usuario?.nombre ?? 'Aprendiz Kankuamo',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: AppColors.textoOscuro,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: AppColors.textoOscuro,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 4),
           // Nivel
@@ -109,9 +111,9 @@ class ProfileScreen extends StatelessWidget {
                 Text(
                   'Nivel ${nivel.nivel} - ${nivel.nombre}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.verdeSelva,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: AppColors.verdeSelva,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -134,18 +136,18 @@ class ProfileScreen extends StatelessWidget {
                 Text(
                   '"El conocimiento es como el agua de la Sierra, fluye de los Mayores hacia las nuevas generaciones."',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textoMedio,
-                    fontStyle: FontStyle.italic,
-                  ),
+                        color: AppColors.textoMedio,
+                        fontStyle: FontStyle.italic,
+                      ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '— Sabiduría Kankuama',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.terracota,
-                    fontWeight: FontWeight.w600,
-                  ),
+                        color: AppColors.terracota,
+                        fontWeight: FontWeight.w600,
+                      ),
                 ),
               ],
             ),
@@ -169,9 +171,9 @@ class ProfileScreen extends StatelessWidget {
           Text(
             'Tu Camino',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.textoOscuro,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: AppColors.textoOscuro,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 20),
           Row(
@@ -238,7 +240,7 @@ class ProfileScreen extends StatelessWidget {
                 child: _buildStatCard(
                   context,
                   icon: Icons.translate_rounded,
-                  value: '24',
+                  value: '${userProgress.leccionesCompletadas * 5}',
                   label: 'Vocablos aprendidos',
                   color: AppColors.verdeMontana,
                 ),
@@ -271,9 +273,9 @@ class ProfileScreen extends StatelessWidget {
           Text(
             value,
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: AppColors.textoOscuro,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: AppColors.textoOscuro,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           Text(
             label,
@@ -301,9 +303,9 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               'Configuración',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: AppColors.textoOscuro,
-                fontWeight: FontWeight.bold,
-              ),
+                    color: AppColors.textoOscuro,
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ),
           _buildConfigItem(
@@ -386,14 +388,14 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     title,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.textoOscuro,
-                    ),
+                          color: AppColors.textoOscuro,
+                        ),
                   ),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textoClaro,
-                    ),
+                          color: AppColors.textoClaro,
+                        ),
                   ),
                 ],
               ),
@@ -433,15 +435,15 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     'Kankui App',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.terracota,
-                      fontWeight: FontWeight.bold,
-                    ),
+                          color: AppColors.terracota,
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                   Text(
                     'Versión 1.0.0',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textoClaro,
-                    ),
+                          color: AppColors.textoClaro,
+                        ),
                   ),
                 ],
               ),
