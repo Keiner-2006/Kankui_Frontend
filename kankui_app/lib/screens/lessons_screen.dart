@@ -143,26 +143,32 @@ class _LessonsScreenState extends State<LessonsScreen> {
                         progreso: progreso,
                         onTap: () async {
                           final palabraLocal = PalabraLocal();
-                          final data = await palabraLocal.obtenerPorCategoria(categoria.id);
+                          final data = await palabraLocal
+                              .obtenerPorCategoria(categoria.id);
 
                           if (data.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('No hay palabras en esta categoría'),
+                                content:
+                                    Text('No hay palabras en esta categoría'),
                               ),
                             );
                             return;
                           }
 
-                          final vocablos = data.map((e) => Vocablo(
-                            id: e['id'],
-                            palabra: e['termino'],
-                            significado: e['traduccion'],
-                            fonetica: e['pronunciacion'],
-                            categoria: e['categoria_id'],
-                            descripcionCultural: null,
-                            enRecuperacion: false,
-                          )).toList();
+                          final vocablos = data
+                              .map((e) => Vocablo(
+                                    id: e['id'],
+                                    palabra: e['termino'],
+                                    significado: e['traduccion'],
+                                    fonetica: e['pronunciacion'],
+                                    categoria: e['categoria_id'],
+                                    audioPath: e['audio_url'],
+                                    imagePath: e['image_url'],
+                                    descripcionCultural: null,
+                                    enRecuperacion: false,
+                                  ))
+                              .toList();
 
                           Navigator.push(
                             context,

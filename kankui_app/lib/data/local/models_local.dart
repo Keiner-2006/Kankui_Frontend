@@ -20,28 +20,29 @@ class CategoriaLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'nombre': nombre,
-    'icono': icono,
-    'total_palabras': totalPalabras,
-    'orden': orden,
-  };
+        'id': id,
+        'nombre': nombre,
+        'icono': icono,
+        'total_palabras': totalPalabras,
+        'orden': orden,
+      };
 
   factory CategoriaLocal.fromMap(Map<String, dynamic> map) => CategoriaLocal(
-    id: map['id'],
-    nombre: map['nombre'],
-    icono: map['icono'],
-    totalPalabras: map['total_palabras'] ?? 0,
-    orden: map['orden'] ?? 0,
-  );
+        id: map['id'],
+        nombre: map['nombre'],
+        icono: map['icono'],
+        totalPalabras: map['total_palabras'] ?? 0,
+        orden: map['orden'] ?? 0,
+      );
 
-  factory CategoriaLocal.fromSupabase(Map<String, dynamic> map) => CategoriaLocal(
-    id: map['id'],
-    nombre: map['nombre'],
-    icono: map['icono'],
-    totalPalabras: map['total_palabras'] ?? 0,
-    orden: map['orden'] ?? 0,
-  );
+  factory CategoriaLocal.fromSupabase(Map<String, dynamic> map) =>
+      CategoriaLocal(
+        id: map['id'],
+        nombre: map['nombre'],
+        icono: map['icono'],
+        totalPalabras: map['total_palabras'] ?? 0,
+        orden: map['orden'] ?? 0,
+      );
 }
 
 class PalabraLocal {
@@ -50,6 +51,7 @@ class PalabraLocal {
   final String? pronunciacion;
   final String? traduccion;
   final String? audioUrl;
+  final String? imageUrl;
   final String? categoriaId;
 
   PalabraLocal({
@@ -58,35 +60,39 @@ class PalabraLocal {
     this.pronunciacion,
     this.traduccion,
     this.audioUrl,
+    this.imageUrl,
     this.categoriaId,
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'termino': termino,
-    'pronunciacion': pronunciacion,
-    'traduccion': traduccion,
-    'audio_url': audioUrl,
-    'categoria_id': categoriaId,
-  };
+        'id': id,
+        'termino': termino,
+        'pronunciacion': pronunciacion,
+        'traduccion': traduccion,
+        'audio_url': audioUrl,
+        'image_url': imageUrl,
+        'categoria_id': categoriaId,
+      };
 
   factory PalabraLocal.fromMap(Map<String, dynamic> map) => PalabraLocal(
-    id: map['id'],
-    termino: map['termino'],
-    pronunciacion: map['pronunciacion'],
-    traduccion: map['traduccion'],
-    audioUrl: map['audio_url'],
-    categoriaId: map['categoria_id'],
-  );
+        id: map['id'],
+        termino: map['termino'],
+        pronunciacion: map['pronunciacion'],
+        traduccion: map['traduccion'],
+        audioUrl: map['audio_url'],
+        imageUrl: map['image_url'],
+        categoriaId: map['categoria_id'],
+      );
 
   factory PalabraLocal.fromSupabase(Map<String, dynamic> map) => PalabraLocal(
-    id: map['id'],
-    termino: map['termino'],
-    pronunciacion: map['pronunciacion'],
-    traduccion: map['traduccion'],
-    audioUrl: map['audio_url'],
-    categoriaId: map['categoria_id'],
-  );
+        id: map['id'],
+        termino: map['termino'],
+        pronunciacion: map['pronunciacion'],
+        traduccion: map['traduccion'],
+        audioUrl: map['audio_url'],
+        imageUrl: map['image_url'],
+        categoriaId: map['categoria_id'],
+      );
 }
 
 class LeccionLocal {
@@ -105,32 +111,31 @@ class LeccionLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'titulo': titulo,
-    'categoria': categoria,
-    'palabras': jsonEncode(palabras),
-    'orden': orden,
-  };
+        'id': id,
+        'titulo': titulo,
+        'categoria': categoria,
+        'palabras': jsonEncode(palabras),
+        'orden': orden,
+      };
 
   factory LeccionLocal.fromMap(Map<String, dynamic> map) => LeccionLocal(
-    id: map['id'],
-    titulo: map['titulo'],
-    categoria: map['categoria'],
-    palabras: map['palabras'] != null 
-        ? List<String>.from(jsonDecode(map['palabras']))
-        : [],
-    orden: map['orden'] ?? 0,
-  );
+        id: map['id'],
+        titulo: map['titulo'],
+        categoria: map['categoria'],
+        palabras: map['palabras'] != null
+            ? List<String>.from(jsonDecode(map['palabras']))
+            : [],
+        orden: map['orden'] ?? 0,
+      );
 
   factory LeccionLocal.fromSupabase(Map<String, dynamic> map) => LeccionLocal(
-    id: map['id'],
-    titulo: map['titulo'],
-    categoria: map['categoria'],
-    palabras: map['palabras'] != null 
-        ? List<String>.from(map['palabras'])
-        : [],
-    orden: map['orden'] ?? 0,
-  );
+        id: map['id'],
+        titulo: map['titulo'],
+        categoria: map['categoria'],
+        palabras:
+            map['palabras'] != null ? List<String>.from(map['palabras']) : [],
+        orden: map['orden'] ?? 0,
+      );
 }
 
 class PreguntaLocal {
@@ -149,32 +154,31 @@ class PreguntaLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'enunciado': enunciado,
-    'opciones': jsonEncode(opciones),
-    'respuesta_correcta': respuestaCorrecta,
-    'palabra_id': palabraId,
-  };
+        'id': id,
+        'enunciado': enunciado,
+        'opciones': jsonEncode(opciones),
+        'respuesta_correcta': respuestaCorrecta,
+        'palabra_id': palabraId,
+      };
 
   factory PreguntaLocal.fromMap(Map<String, dynamic> map) => PreguntaLocal(
-    id: map['id'],
-    enunciado: map['enunciado'],
-    opciones: map['opciones'] != null 
-        ? List<String>.from(jsonDecode(map['opciones']))
-        : [],
-    respuestaCorrecta: map['respuesta_correcta'],
-    palabraId: map['palabra_id'],
-  );
+        id: map['id'],
+        enunciado: map['enunciado'],
+        opciones: map['opciones'] != null
+            ? List<String>.from(jsonDecode(map['opciones']))
+            : [],
+        respuestaCorrecta: map['respuesta_correcta'],
+        palabraId: map['palabra_id'],
+      );
 
   factory PreguntaLocal.fromSupabase(Map<String, dynamic> map) => PreguntaLocal(
-    id: map['id'],
-    enunciado: map['enunciado'],
-    opciones: map['opciones'] != null 
-        ? List<String>.from(map['opciones'])
-        : [],
-    respuestaCorrecta: map['respuesta_correcta'],
-    palabraId: map['palabra_id'],
-  );
+        id: map['id'],
+        enunciado: map['enunciado'],
+        opciones:
+            map['opciones'] != null ? List<String>.from(map['opciones']) : [],
+        respuestaCorrecta: map['respuesta_correcta'],
+        palabraId: map['palabra_id'],
+      );
 }
 
 class RetoLocal {
@@ -195,35 +199,34 @@ class RetoLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'nombre': nombre,
-    'preguntas': jsonEncode(preguntas),
-    'puntos_maximos': puntosMaximos,
-    'orden': orden,
-    'leccion_id': leccionId,
-  };
+        'id': id,
+        'nombre': nombre,
+        'preguntas': jsonEncode(preguntas),
+        'puntos_maximos': puntosMaximos,
+        'orden': orden,
+        'leccion_id': leccionId,
+      };
 
   factory RetoLocal.fromMap(Map<String, dynamic> map) => RetoLocal(
-    id: map['id'],
-    nombre: map['nombre'],
-    preguntas: map['preguntas'] != null 
-        ? List<String>.from(jsonDecode(map['preguntas']))
-        : [],
-    puntosMaximos: map['puntos_maximos'] ?? 100,
-    orden: map['orden'] ?? 0,
-    leccionId: map['leccion_id'],
-  );
+        id: map['id'],
+        nombre: map['nombre'],
+        preguntas: map['preguntas'] != null
+            ? List<String>.from(jsonDecode(map['preguntas']))
+            : [],
+        puntosMaximos: map['puntos_maximos'] ?? 100,
+        orden: map['orden'] ?? 0,
+        leccionId: map['leccion_id'],
+      );
 
   factory RetoLocal.fromSupabase(Map<String, dynamic> map) => RetoLocal(
-    id: map['id'],
-    nombre: map['nombre'],
-    preguntas: map['preguntas'] != null 
-        ? List<String>.from(map['preguntas'])
-        : [],
-    puntosMaximos: map['puntos_maximos'] ?? 100,
-    orden: map['orden'] ?? 0,
-    leccionId: map['leccion_id'],
-  );
+        id: map['id'],
+        nombre: map['nombre'],
+        preguntas:
+            map['preguntas'] != null ? List<String>.from(map['preguntas']) : [],
+        puntosMaximos: map['puntos_maximos'] ?? 100,
+        orden: map['orden'] ?? 0,
+        leccionId: map['leccion_id'],
+      );
 }
 
 // ============================================
@@ -248,31 +251,31 @@ class UsuarioLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'nombre': nombre,
-    'identificacion': identificacion,
-    'rol': rol,
-    'fecha_registro': fechaRegistro,
-    'institucion_id': institucionId,
-  };
+        'id': id,
+        'nombre': nombre,
+        'identificacion': identificacion,
+        'rol': rol,
+        'fecha_registro': fechaRegistro,
+        'institucion_id': institucionId,
+      };
 
   factory UsuarioLocal.fromMap(Map<String, dynamic> map) => UsuarioLocal(
-    id: map['id'],
-    nombre: map['nombre'],
-    identificacion: map['identificacion'],
-    rol: map['rol'] ?? 'estudiante',
-    fechaRegistro: map['fecha_registro'],
-    institucionId: map['institucion_id'],
-  );
+        id: map['id'],
+        nombre: map['nombre'],
+        identificacion: map['identificacion'],
+        rol: map['rol'] ?? 'estudiante',
+        fechaRegistro: map['fecha_registro'],
+        institucionId: map['institucion_id'],
+      );
 
   factory UsuarioLocal.fromSupabase(Map<String, dynamic> map) => UsuarioLocal(
-    id: map['id'],
-    nombre: map['nombre'],
-    identificacion: map['identificacion'],
-    rol: map['rol'] ?? 'estudiante',
-    fechaRegistro: map['fecha_registro'],
-    institucionId: map['institucion_id'],
-  );
+        id: map['id'],
+        nombre: map['nombre'],
+        identificacion: map['identificacion'],
+        rol: map['rol'] ?? 'estudiante',
+        fechaRegistro: map['fecha_registro'],
+        institucionId: map['institucion_id'],
+      );
 }
 
 class EstudianteLocal {
@@ -311,66 +314,67 @@ class EstudianteLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'curso': curso,
-    'grupo': grupo,
-    'promedio': promedio,
-    'pin': pin,
-    'maestro_id': maestroId,
-    'xp_total': xpTotal,
-    'xp_hoy': xpHoy,
-    'racha_dias': rachaDias,
-    'ultima_actividad': ultimaActividad,
-    'lecciones_completadas_total': leccionesCompletadasTotal,
-    'escaneos_exitosos': escaneosExitosos,
-    'lecciones_desbloqueadas': jsonEncode(leccionesDesbloqueadas),
-    'logros_desbloqueados': jsonEncode(logrosDesbloqueados),
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'curso': curso,
+        'grupo': grupo,
+        'promedio': promedio,
+        'pin': pin,
+        'maestro_id': maestroId,
+        'xp_total': xpTotal,
+        'xp_hoy': xpHoy,
+        'racha_dias': rachaDias,
+        'ultima_actividad': ultimaActividad,
+        'lecciones_completadas_total': leccionesCompletadasTotal,
+        'escaneos_exitosos': escaneosExitosos,
+        'lecciones_desbloqueadas': jsonEncode(leccionesDesbloqueadas),
+        'logros_desbloqueados': jsonEncode(logrosDesbloqueados),
+      };
 
   factory EstudianteLocal.fromMap(Map<String, dynamic> map) => EstudianteLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    curso: map['curso'],
-    grupo: map['grupo'],
-    promedio: (map['promedio'] ?? 0).toDouble(),
-    pin: map['pin'],
-    maestroId: map['maestro_id'],
-    xpTotal: map['xp_total'] ?? 0,
-    xpHoy: map['xp_hoy'] ?? 0,
-    rachaDias: map['racha_dias'] ?? 0,
-    ultimaActividad: map['ultima_actividad'],
-    leccionesCompletadasTotal: map['lecciones_completadas_total'] ?? 0,
-    escaneosExitosos: map['escaneos_exitosos'] ?? 0,
-    leccionesDesbloqueadas: map['lecciones_desbloqueadas'] != null
-        ? List<String>.from(jsonDecode(map['lecciones_desbloqueadas']))
-        : ['leccion_1'],
-    logrosDesbloqueados: map['logros_desbloqueados'] != null
-        ? List<String>.from(jsonDecode(map['logros_desbloqueados']))
-        : [],
-  );
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        curso: map['curso'],
+        grupo: map['grupo'],
+        promedio: (map['promedio'] ?? 0).toDouble(),
+        pin: map['pin'],
+        maestroId: map['maestro_id'],
+        xpTotal: map['xp_total'] ?? 0,
+        xpHoy: map['xp_hoy'] ?? 0,
+        rachaDias: map['racha_dias'] ?? 0,
+        ultimaActividad: map['ultima_actividad'],
+        leccionesCompletadasTotal: map['lecciones_completadas_total'] ?? 0,
+        escaneosExitosos: map['escaneos_exitosos'] ?? 0,
+        leccionesDesbloqueadas: map['lecciones_desbloqueadas'] != null
+            ? List<String>.from(jsonDecode(map['lecciones_desbloqueadas']))
+            : ['leccion_1'],
+        logrosDesbloqueados: map['logros_desbloqueados'] != null
+            ? List<String>.from(jsonDecode(map['logros_desbloqueados']))
+            : [],
+      );
 
-  factory EstudianteLocal.fromSupabase(Map<String, dynamic> map) => EstudianteLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    curso: map['curso'],
-    grupo: map['grupo'],
-    promedio: (map['promedio'] ?? 0).toDouble(),
-    pin: map['pin'],
-    maestroId: map['maestro_id'],
-    xpTotal: map['xp_total'] ?? 0,
-    xpHoy: map['xp_hoy'] ?? 0,
-    rachaDias: map['racha_dias'] ?? 0,
-    ultimaActividad: map['ultima_actividad'],
-    leccionesCompletadasTotal: map['lecciones_completadas_total'] ?? 0,
-    escaneosExitosos: map['escaneos_exitosos'] ?? 0,
-    leccionesDesbloqueadas: map['lecciones_desbloqueadas'] != null
-        ? List<String>.from(map['lecciones_desbloqueadas'])
-        : ['leccion_1'],
-    logrosDesbloqueados: map['logros_desbloqueados'] != null
-        ? List<String>.from(map['logros_desbloqueados'])
-        : [],
-  );
+  factory EstudianteLocal.fromSupabase(Map<String, dynamic> map) =>
+      EstudianteLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        curso: map['curso'],
+        grupo: map['grupo'],
+        promedio: (map['promedio'] ?? 0).toDouble(),
+        pin: map['pin'],
+        maestroId: map['maestro_id'],
+        xpTotal: map['xp_total'] ?? 0,
+        xpHoy: map['xp_hoy'] ?? 0,
+        rachaDias: map['racha_dias'] ?? 0,
+        ultimaActividad: map['ultima_actividad'],
+        leccionesCompletadasTotal: map['lecciones_completadas_total'] ?? 0,
+        escaneosExitosos: map['escaneos_exitosos'] ?? 0,
+        leccionesDesbloqueadas: map['lecciones_desbloqueadas'] != null
+            ? List<String>.from(map['lecciones_desbloqueadas'])
+            : ['leccion_1'],
+        logrosDesbloqueados: map['logros_desbloqueados'] != null
+            ? List<String>.from(map['logros_desbloqueados'])
+            : [],
+      );
 
   /// Crear copia con cambios
   EstudianteLocal copyWith({
@@ -395,9 +399,11 @@ class EstudianteLocal {
       xpHoy: xpHoy ?? this.xpHoy,
       rachaDias: rachaDias ?? this.rachaDias,
       ultimaActividad: ultimaActividad ?? this.ultimaActividad,
-      leccionesCompletadasTotal: leccionesCompletadasTotal ?? this.leccionesCompletadasTotal,
+      leccionesCompletadasTotal:
+          leccionesCompletadasTotal ?? this.leccionesCompletadasTotal,
       escaneosExitosos: escaneosExitosos ?? this.escaneosExitosos,
-      leccionesDesbloqueadas: leccionesDesbloqueadas ?? this.leccionesDesbloqueadas,
+      leccionesDesbloqueadas:
+          leccionesDesbloqueadas ?? this.leccionesDesbloqueadas,
       logrosDesbloqueados: logrosDesbloqueados ?? this.logrosDesbloqueados,
     );
   }
@@ -427,44 +433,46 @@ class ProgresoCategoriaLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'categoria_id': categoriaId,
-    'lecciones_completadas': leccionesCompletadas,
-    'total_lecciones': totalLecciones,
-    'ultima_actividad': ultimaActividad,
-    'synced': synced ? 1 : 0,
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'categoria_id': categoriaId,
+        'lecciones_completadas': leccionesCompletadas,
+        'total_lecciones': totalLecciones,
+        'ultima_actividad': ultimaActividad,
+        'synced': synced ? 1 : 0,
+      };
 
   /// Para enviar a Supabase (sin campo synced)
   Map<String, dynamic> toSupabase() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'categoria_id': categoriaId,
-    'lecciones_completadas': leccionesCompletadas,
-    'total_lecciones': totalLecciones,
-    'ultima_actividad': ultimaActividad,
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'categoria_id': categoriaId,
+        'lecciones_completadas': leccionesCompletadas,
+        'total_lecciones': totalLecciones,
+        'ultima_actividad': ultimaActividad,
+      };
 
-  factory ProgresoCategoriaLocal.fromMap(Map<String, dynamic> map) => ProgresoCategoriaLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    categoriaId: map['categoria_id'],
-    leccionesCompletadas: map['lecciones_completadas'] ?? 0,
-    totalLecciones: map['total_lecciones'] ?? 0,
-    ultimaActividad: map['ultima_actividad'],
-    synced: map['synced'] == 1,
-  );
+  factory ProgresoCategoriaLocal.fromMap(Map<String, dynamic> map) =>
+      ProgresoCategoriaLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        categoriaId: map['categoria_id'],
+        leccionesCompletadas: map['lecciones_completadas'] ?? 0,
+        totalLecciones: map['total_lecciones'] ?? 0,
+        ultimaActividad: map['ultima_actividad'],
+        synced: map['synced'] == 1,
+      );
 
-  factory ProgresoCategoriaLocal.fromSupabase(Map<String, dynamic> map) => ProgresoCategoriaLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    categoriaId: map['categoria_id'],
-    leccionesCompletadas: map['lecciones_completadas'] ?? 0,
-    totalLecciones: map['total_lecciones'] ?? 0,
-    ultimaActividad: map['ultima_actividad'],
-    synced: true, // Si viene de Supabase, ya esta sincronizado
-  );
+  factory ProgresoCategoriaLocal.fromSupabase(Map<String, dynamic> map) =>
+      ProgresoCategoriaLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        categoriaId: map['categoria_id'],
+        leccionesCompletadas: map['lecciones_completadas'] ?? 0,
+        totalLecciones: map['total_lecciones'] ?? 0,
+        ultimaActividad: map['ultima_actividad'],
+        synced: true, // Si viene de Supabase, ya esta sincronizado
+      );
 }
 
 class ProgresoRetoLocal {
@@ -487,43 +495,45 @@ class ProgresoRetoLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'reto_id': retoId,
-    'completado': completado ? 1 : 0,
-    'puntos_obtenidos': puntosObtenidos,
-    'fecha_completado': fechaCompletado,
-    'synced': synced ? 1 : 0,
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'reto_id': retoId,
+        'completado': completado ? 1 : 0,
+        'puntos_obtenidos': puntosObtenidos,
+        'fecha_completado': fechaCompletado,
+        'synced': synced ? 1 : 0,
+      };
 
   Map<String, dynamic> toSupabase() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'reto_id': retoId,
-    'completado': completado,
-    'puntos_obtenidos': puntosObtenidos,
-    'fecha_completado': fechaCompletado,
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'reto_id': retoId,
+        'completado': completado,
+        'puntos_obtenidos': puntosObtenidos,
+        'fecha_completado': fechaCompletado,
+      };
 
-  factory ProgresoRetoLocal.fromMap(Map<String, dynamic> map) => ProgresoRetoLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    retoId: map['reto_id'],
-    completado: map['completado'] == 1,
-    puntosObtenidos: map['puntos_obtenidos'] ?? 0,
-    fechaCompletado: map['fecha_completado'],
-    synced: map['synced'] == 1,
-  );
+  factory ProgresoRetoLocal.fromMap(Map<String, dynamic> map) =>
+      ProgresoRetoLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        retoId: map['reto_id'],
+        completado: map['completado'] == 1,
+        puntosObtenidos: map['puntos_obtenidos'] ?? 0,
+        fechaCompletado: map['fecha_completado'],
+        synced: map['synced'] == 1,
+      );
 
-  factory ProgresoRetoLocal.fromSupabase(Map<String, dynamic> map) => ProgresoRetoLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    retoId: map['reto_id'],
-    completado: map['completado'] ?? false,
-    puntosObtenidos: map['puntos_obtenidos'] ?? 0,
-    fechaCompletado: map['fecha_completado'],
-    synced: true,
-  );
+  factory ProgresoRetoLocal.fromSupabase(Map<String, dynamic> map) =>
+      ProgresoRetoLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        retoId: map['reto_id'],
+        completado: map['completado'] ?? false,
+        puntosObtenidos: map['puntos_obtenidos'] ?? 0,
+        fechaCompletado: map['fecha_completado'],
+        synced: true,
+      );
 }
 
 class ResultadoQuizLocal {
@@ -546,47 +556,48 @@ class ResultadoQuizLocal {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'reto_id': retoId,
-    'respuestas': jsonEncode(respuestas),
-    'puntaje': puntaje,
-    'fecha': fecha,
-    'synced': synced ? 1 : 0,
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'reto_id': retoId,
+        'respuestas': jsonEncode(respuestas),
+        'puntaje': puntaje,
+        'fecha': fecha,
+        'synced': synced ? 1 : 0,
+      };
 
   Map<String, dynamic> toSupabase() => {
-    'id': id,
-    'usuario_id': usuarioId,
-    'reto_id': retoId,
-    'respuestas': respuestas,
-    'puntaje': puntaje,
-    'fecha': fecha,
-  };
+        'id': id,
+        'usuario_id': usuarioId,
+        'reto_id': retoId,
+        'respuestas': respuestas,
+        'puntaje': puntaje,
+        'fecha': fecha,
+      };
 
-  factory ResultadoQuizLocal.fromMap(Map<String, dynamic> map) => ResultadoQuizLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    retoId: map['reto_id'],
-    respuestas: map['respuestas'] != null
-        ? List<int>.from(jsonDecode(map['respuestas']))
-        : [],
-    puntaje: map['puntaje'] ?? 0,
-    fecha: map['fecha'],
-    synced: map['synced'] == 1,
-  );
+  factory ResultadoQuizLocal.fromMap(Map<String, dynamic> map) =>
+      ResultadoQuizLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        retoId: map['reto_id'],
+        respuestas: map['respuestas'] != null
+            ? List<int>.from(jsonDecode(map['respuestas']))
+            : [],
+        puntaje: map['puntaje'] ?? 0,
+        fecha: map['fecha'],
+        synced: map['synced'] == 1,
+      );
 
-  factory ResultadoQuizLocal.fromSupabase(Map<String, dynamic> map) => ResultadoQuizLocal(
-    id: map['id'],
-    usuarioId: map['usuario_id'],
-    retoId: map['reto_id'],
-    respuestas: map['respuestas'] != null
-        ? List<int>.from(map['respuestas'])
-        : [],
-    puntaje: map['puntaje'] ?? 0,
-    fecha: map['fecha'],
-    synced: true,
-  );
+  factory ResultadoQuizLocal.fromSupabase(Map<String, dynamic> map) =>
+      ResultadoQuizLocal(
+        id: map['id'],
+        usuarioId: map['usuario_id'],
+        retoId: map['reto_id'],
+        respuestas:
+            map['respuestas'] != null ? List<int>.from(map['respuestas']) : [],
+        puntaje: map['puntaje'] ?? 0,
+        fecha: map['fecha'],
+        synced: true,
+      );
 }
 
 // ============================================
@@ -605,14 +616,14 @@ class SyncMetadata {
   });
 
   Map<String, dynamic> toMap() => {
-    'tabla': tabla,
-    'ultima_sync': ultimaSync,
-    'version': version,
-  };
+        'tabla': tabla,
+        'ultima_sync': ultimaSync,
+        'version': version,
+      };
 
   factory SyncMetadata.fromMap(Map<String, dynamic> map) => SyncMetadata(
-    tabla: map['tabla'],
-    ultimaSync: map['ultima_sync'],
-    version: map['version'] ?? 0,
-  );
+        tabla: map['tabla'],
+        ultimaSync: map['ultima_sync'],
+        version: map['version'] ?? 0,
+      );
 }
