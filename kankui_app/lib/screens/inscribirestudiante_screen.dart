@@ -1,10 +1,14 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kankui_app/services/docenteservices.dart';
-import '../models/estudiantes_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:get_it/get_it.dart';
 import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/usuario_model.dart';
+import '../models/estudiantes_model.dart';
+import '../repositories/usuario_repository.dart';
+import '../repositories/estudiante_repository.dart';
+import 'package:kankui_app/services/docenteservices.dart';
+
 // ============================================================
 // PALETA DE COLORES (misma que AdminPanelPage)
 // ============================================================
@@ -31,8 +35,6 @@ class _AppColors {
 // MODELOS
 // ============================================================
 
-/// Grados escolares disponibles.
-/// TODO: obtener desde API o configuración de la institución.
 const List<String> _gradosDisponibles = [
   'Preescolar',
   'Primero',
@@ -48,12 +50,11 @@ const List<String> _gradosDisponibles = [
   'Once',
 ];
 
-/// Resultado devuelto al confirmar el registro.
 class NuevoEstudianteResult {
   final String nombreCompleto;
   final String identificacion;
   final String grado;
-  final String pin; // formato '4281' (sin 'K-')
+  final String pin; 
 
   const NuevoEstudianteResult({
     required this.nombreCompleto,
@@ -70,12 +71,10 @@ class NuevoEstudianteResult {
 // ============================================================
 
 class InscribirEstudiantePage extends StatefulWidget {
-  /// Callback invocado al guardar exitosamente.
-  /// Recibe el resultado con los datos + PIN generado.
-  /// TODO: conectar al repositorio/BLoC para persistir en la API.
   final void Function(NuevoEstudianteResult resultado)? onGuardar;
+  final String? maestroId;
 
-  const InscribirEstudiantePage({super.key, this.onGuardar});
+  const InscribirEstudiantePage({super.key, this.onGuardar, this.maestroId});
 
   @override
   State<InscribirEstudiantePage> createState() =>
@@ -83,7 +82,6 @@ class InscribirEstudiantePage extends StatefulWidget {
 }
 
 class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
-  // ── Formulario ───────────────────────────────────────────────
   final _formKey = GlobalKey<FormState>();
   final docenteservice = DocenteService();
 
@@ -91,14 +89,11 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   final _idController     = TextEditingController();
   String? _gradoSeleccionado;
 
-  // ── Estado de PIN ────────────────────────────────────────────
-  /// PIN generado al guardar. null = aún no generado.
   String? _pinGenerado;
+  UsuarioModel? _usuarioGuardado;
+  EstudianteModel? _estudianteGuardado;
 
-  /// true mientras se simula la llamada a la API.
   bool _guardando = false;
-
-  // ── Ciclo de vida ────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -107,12 +102,6 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     super.dispose();
   }
 
-  // ── Lógica ──────────────────────────────────────────────────
-
-  /// Genera un PIN numérico de 4 dígitos.
-  /// TODO: en producción solicitar el PIN al backend para garantizar unicidad.
-  
- 
   Future<void> _guardarYGenerar() async {
   FocusScope.of(context).unfocus();
 
@@ -150,7 +139,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     // =========================
     final estudiante = Estudiante(
       id: const Uuid().v4(),
-      usuarioId: usuarioEstudianteId, // ✅ CORRECTO
+      usuarioId: usuarioEstudianteId,
       curso: _gradoSeleccionado,
       grupo: null,
       pin: '',
@@ -158,14 +147,13 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     );
 
     // =========================
-    // 3. CREAR ESTUDIANTE REAL
+    // 3. CREAR ESTUDIANTE CON PIN ÚNICO
     // =========================
-    final estudianteCreado =
-    await docenteservice.crearEstudianteConPinUnico(
-  estudiante,
-  docente.id,
-  usuarioEstudianteId,
-);
+    final estudianteCreado = await docenteservice.crearEstudianteConPinUnico(
+      estudiante,
+      docente.id,
+      usuarioEstudianteId,
+    );
 
     final pinGenerado = estudianteCreado.pin;
 
@@ -208,21 +196,129 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
 
 
-  void _mostrarDialogoExito(NuevoEstudianteResult r) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _DialogoExito(
-        resultado: r,
-        onAceptar: () {
-          Navigator.of(context).pop(); // cierra diálogo
-          Navigator.of(context).pop(); // regresa al panel
-        },
+  void _mostrarDialogoExito(NuevoEstudianteResult resultado) {
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
       ),
-    );
-  }
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8F5), // Rosa melocotón muy pálido
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Icono de check
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFE5D0), // Melocotón claro
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                color: Color(0xFFE8842A), // Naranja intenso
+                size: 42,
+              ),
+            ),
+            const SizedBox(height: 24),
 
-  // ── Build ─────────────────────────────────────────────────────
+            // Título
+            const Text(
+              '¡Estudiante registrado!',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1A1A), // Negro
+              ),
+            ),
+            const SizedBox(height: 6),
+
+            // Nombre del estudiante
+            Text(
+              resultado.nombreCompleto,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF9E9E9E), // Gris medio
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // Recuadro del PIN
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFCE8), // Amarillo muy claro/crema
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: const Color(0xFFE8D48A), // Amarillo/mostaza
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'PIN del estudiante',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF757575), // Gris
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    resultado.pin,
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFCC8B2D), // Dorado/mostaza
+                      letterSpacing: 3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // Botón Listo
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5C3D2E), // Marrón chocolate
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'Listo',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +335,6 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ── Nombre Completo ────────────────────────
                     _FormField(
                       label: 'Nombre Completo',
                       child: _InputText(
@@ -258,10 +353,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
                         },
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // ── Número de Identificación ───────────────
                     _FormField(
                       label: 'Número de Identificación',
                       child: _InputText(
@@ -283,10 +375,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
                         },
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
-                    // ── Grado Escolar ──────────────────────────
                     _FormField(
                       label: 'Grado Escolar',
                       child: _GradoDropdown(
@@ -297,23 +386,14 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
                             v == null ? 'Selecciona un grado' : null,
                       ),
                     ),
-
                     const SizedBox(height: 28),
-
-                    // ── PIN preview ────────────────────────────
                     _PinPreview(pin: _pinGenerado),
-
                     const SizedBox(height: 28),
-
-                    // ── Botón guardar ──────────────────────────
                     _BotonGuardar(
                       cargando: _guardando,
                       onPressed: _guardarYGenerar,
                     ),
-
                     const SizedBox(height: 20),
-
-                    // ── Nota informativa ───────────────────────
                     const _NotaInformativa(
                       texto:
                           'El PIN será generado automáticamente al guardar. '
@@ -330,15 +410,9 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
   }
 }
 
-// ============================================================
-// WIDGET: Header con botón atrás
-// ============================================================
-
 class _Header extends StatelessWidget {
   final VoidCallback? onBack;
-
   const _Header({this.onBack});
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -359,7 +433,6 @@ class _Header extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Botón atrás
           GestureDetector(
             onTap: onBack,
             child: Container(
@@ -377,7 +450,6 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          // Títulos
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
@@ -408,16 +480,10 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Wrapper de campo con label
-// ============================================================
-
 class _FormField extends StatelessWidget {
   final String label;
   final Widget child;
-
   const _FormField({required this.label, required this.child});
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -438,10 +504,6 @@ class _FormField extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Input de texto genérico
-// ============================================================
-
 class _InputText extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -449,7 +511,6 @@ class _InputText extends StatelessWidget {
   final TextCapitalization textCapitalization;
   final List<TextInputFormatter>? inputFormatters;
   final String? Function(String?)? validator;
-
   const _InputText({
     required this.controller,
     required this.hint,
@@ -458,7 +519,6 @@ class _InputText extends StatelessWidget {
     this.inputFormatters,
     this.validator,
   });
-
   @override
   Widget build(BuildContext context) {
     return TextFormField(
@@ -467,20 +527,13 @@ class _InputText extends StatelessWidget {
       textCapitalization: textCapitalization,
       inputFormatters: inputFormatters,
       validator: validator,
-      style: const TextStyle(
-        fontSize: 14,
-        color: _AppColors.textPrimary,
-      ),
+      style: const TextStyle(fontSize: 14, color: _AppColors.textPrimary),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: _AppColors.hintColor,
-          fontSize: 14,
-        ),
+        hintStyle: const TextStyle(color: _AppColors.hintColor, fontSize: 14),
         filled: true,
         fillColor: _AppColors.inputFill,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: _AppColors.inputBorder),
@@ -491,107 +544,57 @@ class _InputText extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: _AppColors.accent, width: 1.5),
+          borderSide: const BorderSide(color: _AppColors.accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: Colors.redAccent),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
         ),
       ),
     );
   }
 }
 
-// ============================================================
-// WIDGET: Dropdown de grado escolar
-// ============================================================
-
 class _GradoDropdown extends StatelessWidget {
   final String? valor;
   final void Function(String?) onChanged;
   final String? Function(String?)? validator;
-
-  const _GradoDropdown({
-    required this.valor,
-    required this.onChanged,
-    this.validator,
-  });
-
+  const _GradoDropdown({required this.valor, required this.onChanged, this.validator});
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       value: valor,
       onChanged: onChanged,
       validator: validator,
-      hint: const Text(
-        'Seleccionar grado...',
-        style: TextStyle(color: _AppColors.hintColor, fontSize: 14),
-      ),
-      style: const TextStyle(
-        fontSize: 14,
-        color: _AppColors.textPrimary,
-      ),
-      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-          color: _AppColors.textSecondary),
+      hint: const Text('Seleccionar grado...', style: TextStyle(color: _AppColors.hintColor, fontSize: 14)),
+      style: const TextStyle(fontSize: 14, color: _AppColors.textPrimary),
+      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: _AppColors.textSecondary),
       decoration: InputDecoration(
         filled: true,
         fillColor: _AppColors.inputFill,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: _AppColors.inputBorder),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _AppColors.inputBorder),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide:
-              const BorderSide(color: _AppColors.accent, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Colors.redAccent),
-        ),
       ),
-      items: _gradosDisponibles
-          .map((g) => DropdownMenuItem(value: g, child: Text(g)))
-          .toList(),
+      items: _gradosDisponibles.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
     );
   }
 }
 
-// ============================================================
-// WIDGET: Preview del PIN generado
-// ============================================================
-
 class _PinPreview extends StatelessWidget {
-  /// null = aún no generado (muestra K-????)
   final String? pin;
-
   const _PinPreview({this.pin});
-
   @override
   Widget build(BuildContext context) {
     final generado = pin != null;
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: _AppColors.pinBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _AppColors.pinBorder.withOpacity(0.5),
-          style: BorderStyle.solid,
-          width: 1.5,
-        ),
+        border: Border.all(color: _AppColors.pinBorder.withOpacity(0.5), width: 1.5),
       ),
       child: Row(
         children: [
@@ -599,77 +602,30 @@ class _PinPreview extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'PIN Generado Automáticamente',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: _AppColors.textSecondary,
-                  ),
-                ),
+                const Text('PIN Generado Automáticamente', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _AppColors.textSecondary)),
                 const SizedBox(height: 6),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 400),
-                  child: Text(
-                    generado ? 'K-$pin' : 'K-????',
-                    key: ValueKey(pin),
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                      color: generado
-                          ? _AppColors.pinText
-                          : _AppColors.pinText.withOpacity(0.45),
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
+                Text(generado ? 'K-$pin' : 'K-????', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: generado ? _AppColors.pinText : _AppColors.pinText.withOpacity(0.45), letterSpacing: 1.5)),
               ],
             ),
           ),
-          // Icono ojo / copiado
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: generado
-                ? GestureDetector(
-                    key: const ValueKey('copy'),
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: 'K-$pin'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('PIN copiado al portapapeles'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-                    child: const Icon(
-                      Icons.copy_rounded,
-                      color: _AppColors.accent,
-                      size: 24,
-                    ),
-                  )
-                : const Icon(
-                    key: ValueKey('eye'),
-                    Icons.remove_red_eye_outlined,
-                    color: _AppColors.hintColor,
-                    size: 24,
-                  ),
-          ),
+          if (generado)
+            GestureDetector(
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: 'K-$pin'));
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PIN copiado')));
+              },
+              child: const Icon(Icons.copy_rounded, color: _AppColors.accent, size: 24),
+            ),
         ],
       ),
     );
   }
 }
 
-// ============================================================
-// WIDGET: Botón "Guardar y Generar Código"
-// ============================================================
-
 class _BotonGuardar extends StatelessWidget {
   final bool cargando;
   final VoidCallback? onPressed;
-
   const _BotonGuardar({required this.cargando, this.onPressed});
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -678,181 +634,41 @@ class _BotonGuardar extends StatelessWidget {
         onPressed: cargando ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: _AppColors.headerBrown,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: _AppColors.headerBrown.withOpacity(0.6),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
-        child: cargando
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : const Text(
-                'Guardar y Generar Código',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
-                ),
-              ),
+        child: cargando ? const CircularProgressIndicator(color: Colors.white) : const Text('Guardar y Generar Código', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
       ),
     );
   }
 }
 
-// ============================================================
-// WIDGET: Nota informativa al pie
-// ============================================================
-
 class _NotaInformativa extends StatelessWidget {
   final String texto;
-
   const _NotaInformativa({required this.texto});
-
   @override
   Widget build(BuildContext context) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.info_outline_rounded,
-            size: 16, color: _AppColors.infoColor),
+        const Icon(Icons.info_outline, color: _AppColors.infoColor, size: 16),
         const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            texto,
-            style: const TextStyle(
-              fontSize: 12,
-              color: _AppColors.infoColor,
-              height: 1.5,
-            ),
-          ),
-        ),
+        Expanded(child: Text(texto, style: const TextStyle(fontSize: 12, color: _AppColors.infoColor))),
       ],
     );
   }
 }
 
-// ============================================================
-// WIDGET: Diálogo de éxito tras guardar
-// ============================================================
-
+// Faltan componentes como _DialogoExito, se asume que están definidos abajo o en otro archivo
+// Para que compile si faltan, podrías necesitar definirlos o importarlos.
 class _DialogoExito extends StatelessWidget {
   final NuevoEstudianteResult resultado;
   final VoidCallback onAceptar;
-
-  const _DialogoExito({
-    required this.resultado,
-    required this.onAceptar,
-  });
-
+  const _DialogoExito({required this.resultado, required this.onAceptar});
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Ícono de éxito
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: _AppColors.accentLight.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle_rounded,
-                color: _AppColors.accent,
-                size: 36,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              '¡Estudiante registrado!',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: _AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              resultado.nombreCompleto,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: _AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 20),
-            // PIN resaltado
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              decoration: BoxDecoration(
-                color: _AppColors.pinBackground,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: _AppColors.pinBorder.withOpacity(0.4),
-                ),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'PIN del estudiante',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: _AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    resultado.pinFormateado,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: _AppColors.pinText,
-                      letterSpacing: 2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton(
-                onPressed: onAceptar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _AppColors.headerBrown,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: const Text(
-                  'Listo',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AlertDialog(
+      title: const Text('¡Éxito!'),
+      content: Text('Estudiante registrado. PIN: ${resultado.pinFormateado}'),
+      actions: [TextButton(onPressed: onAceptar, child: const Text('Aceptar'))],
     );
   }
 }

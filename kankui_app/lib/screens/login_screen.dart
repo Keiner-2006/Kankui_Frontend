@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
+import 'package:get_it/get_it.dart';
+import '../repositories/maestro_repository.dart';
 import 'package:kankui_app/models/maestro_model.dart';
 import '../services/auth_services.dart';
 import '../data/remote/supabase_service.dart';
@@ -259,7 +261,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
   }
 
   Future<void> _handleLogin() async {
-    if (_idController.text.isEmpty || _pinController.text.length < 4) {
+    if (_idController.text.isEmpty || _pinController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor completa todos los campos'),
@@ -386,16 +388,14 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         color: LoginColors.textMuted,
                       ),
                     ),
-                   const SizedBox(height: 36),
+                    const SizedBox(height: 36),
                     _InputField(
                       label: 'ID Estudiantil',
-                      hint: 'Ej: ABC-12345 o 1234567890',
+                      hint: 'Ej: 1234567890',
                       controller: _idController,
-                      keyboardType: TextInputType.text,
+                      keyboardType: TextInputType.number,
                       inputFormatters: [
-                        // Permitir letras (mayúsculas/minúsculas), números, guiones y guión bajo
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\-_]')),
-                        LengthLimitingTextInputFormatter(20),
+                        FilteringTextInputFormatter.digitsOnly,
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -971,7 +971,7 @@ class _PasswordField extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────
-// WIDGET: Campo PIN con 4 puntos visuales
+// WIDGET: Campo PIN con formato K-XXXXXX (alfanumérico)
 // ─────────────────────────────────────────────
 class _PinField extends StatefulWidget {
   final TextEditingController controller;
@@ -991,8 +991,6 @@ class _PinFieldState extends State<_PinField> {
 
   @override
   Widget build(BuildContext context) {
-    final pinLength = widget.controller.text.length.clamp(0, 4);
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1006,62 +1004,57 @@ class _PinFieldState extends State<_PinField> {
           ),
         ),
         const SizedBox(height: 8),
-        Stack(
-          children: [
-            // Visual: 4 puntos
-            Container(
-              width: double.infinity,
-              height: 56,
-              decoration: BoxDecoration(
-                color: LoginColors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: LoginColors.inputBorder),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (i) {
-                  final filled = i < pinLength;
-                  return Container(
-                    width: 12,
-                    height: 12,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: filled
-                          ? LoginColors.brown
-                          : LoginColors.inputBorder,
-                    ),
-                  );
-                }),
-              ),
-            ),
-            // Input invisible encima
-            Positioned.fill(
-              child: TextField(
-                controller: widget.controller,
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-                obscureText: true,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(color: Colors.transparent),
-                cursorColor: Colors.transparent,
-                decoration: InputDecoration(
-                  counterText: '',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: LoginColors.brown, width: 1.8),
-                  ),
-                  filled: true,
-                  fillColor: Colors.transparent,
-                ),
-              ),
-            ),
+        TextField(
+          controller: widget.controller,
+          keyboardType: TextInputType.text,
+          maxLength: 8,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
           ],
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: LoginColors.textDark,
+            letterSpacing: 2,
+          ),
+          decoration: InputDecoration(
+            hintText: '1234AB',
+            hintStyle: const TextStyle(
+              color: LoginColors.textMuted,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+            counterText: '',
+            prefixText: 'K-',
+            prefixStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: LoginColors.brown,
+              letterSpacing: 1.5,
+            ),
+            filled: true,
+            fillColor: LoginColors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: LoginColors.inputBorder),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: LoginColors.inputBorder),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: LoginColors.brown,
+                width: 1.8,
+              ),
+            ),
+          ),
         ),
       ],
     );

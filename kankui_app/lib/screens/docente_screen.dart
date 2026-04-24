@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/repositories/estudiante_repository.dart';
 import 'package:kankui_app/screens/inscribirestudiante_screen.dart';
 import 'package:kankui_app/services/service_locator.dart';
 import 'package:kankui_app/data/remote/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 // ============================================================
@@ -50,7 +52,7 @@ class Estudiante {
 // DATOS DE EJEMPLO (reemplazar con llamadas a API/BLoC/Provider)
 // ============================================================
 
-final _profesorEjemplo = const Profesor(
+const _profesorEjemplo = Profesor(
   nombre: 'Laura',
   apellido: 'Martínez',
   correo: 'laura@iedemo.edu.co',
@@ -94,11 +96,14 @@ class AdminPanelPage extends StatefulWidget {
   /// Callback al pulsar "Exportar".
   final VoidCallback? onExportar;
 
+  final String? maestroId;
+
   const AdminPanelPage({
     super.key,
     required this.profesor,
     this.onAgregarEstudiante,
     this.onExportar,
+    this.maestroId,
   });
 
   @override
@@ -151,51 +156,57 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   /// );
   /// ```
   Future<void> _cargarEstudiantes() async {
-    // Reinicia estado antes de cada carga (útil en pull-to-refresh)
+  print('🚀 Iniciando carga de estudiantes...');
+
+  setState(() {
+    _cargando = true;
+    _error = null;
+  });
+
+  try {
+    final repo = EstudianteRepository(Supabase.instance.client);
+
+    print('📡 Llamando a Supabase...');
+    final data = await repo.obtenerTodos();
+
+    print('📦 Datos crudos recibidos: $data');
+    print('📊 Cantidad: ${data.length}');
+
+    final datos = data.map((e) {
+      print('👤 Procesando estudiante: ${e.toJson()}');
+
+      return Estudiante(
+        id: e.id,
+        nombre: e.nombre ?? 'Sin nombre',
+        apellido: e.apellido ?? '',
+        pin: e.pin ?? '0000',
+      );
+    }).toList();
+
+    print('✅ Datos mapeados: $datos');
+
+    if (!mounted) return;
+
     setState(() {
-      _cargando = true;
-      _error = null;
+      _todosLosEstudiantes = datos;
+      _estudiantesFiltrados = datos;
+      _cargando = false;
     });
 
-    try {
-      // ── [API REAL] Sustituye estas líneas por tu llamada real ──
-      await Future.delayed(
-          const Duration(milliseconds: 900)); // simula latencia
+    print('🎉 UI actualizada correctamente');
 
-      final datos = [
-        const Estudiante(
-            id: '1045231789', nombre: 'Juan', apellido: 'Kakuamo', pin: '4281'),
-        const Estudiante(
-            id: '1043567821',
-            nombre: 'María',
-            apellido: 'Izquierdo',
-            pin: '3947'),
-        const Estudiante(
-            id: '1044890234', nombre: 'Carlos', apellido: 'Ríos', pin: '5612'),
-        const Estudiante(
-            id: '1042341567', nombre: 'Ana', apellido: 'Torres', pin: '2834'),
-        const Estudiante(
-            id: '1045678923',
-            nombre: 'Luis',
-            apellido: 'Villafaña',
-            pin: '7195'),
-      ];
-      // ── [FIN BLOQUE MOCK] ──────────────────────────────────────
+  } catch (e, stack) {
+    print('❌ ERROR COMPLETO: $e');
+    print('📍 STACKTRACE: $stack');
 
-      if (!mounted) return; // evita setState si el widget fue desmontado
-      setState(() {
-        _todosLosEstudiantes = datos;
-        _estudiantesFiltrados = datos;
-        _cargando = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'No se pudieron cargar los estudiantes.\nIntenta de nuevo.';
-        _cargando = false;
-      });
-    }
+    if (!mounted) return;
+
+    setState(() {
+      _error = 'Error cargando estudiantes: $e';
+      _cargando = false;
+    });
   }
+}
 
   // ── Agregar estudiante ────────────────────────────────────────
 
@@ -218,10 +229,13 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       await locator<SupabaseService>().insertarUsuario(nuevoUsuario);
       // Recargar lista después de agregar
       await _cargarEstudiantes();
+      
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Estudiante agregado exitosamente')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al agregar estudiante: $e')),
       );
@@ -277,7 +291,10 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
       ),
 
       // ── FAB AGREGAR ─────────────────────────────────────────
-      floatingActionButton: _AddFab(onPressed: widget.onAgregarEstudiante),
+      floatingActionButton: _AddFab(
+        onPressed: widget.onAgregarEstudiante,
+        maestroId: widget.maestroId,
+      ),
     );
   }
 
@@ -391,7 +408,7 @@ class _Header extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -427,7 +444,7 @@ class _SearchBar extends StatelessWidget {
           border: Border.all(color: _AppColors.searchBorder),
           boxShadow: [
             BoxShadow(
-              color: _AppColors.headerBrown.withOpacity(0.06),
+              color: _AppColors.headerBrown.withValues(alpha: 0.06),
               blurRadius: 12,
               offset: const Offset(0, 3),
             ),
@@ -557,7 +574,7 @@ class _EstudianteCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: _AppColors.headerBrown.withOpacity(0.06),
+              color: _AppColors.headerBrown.withValues(alpha: 0.06),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -620,7 +637,7 @@ class _Avatar extends StatelessWidget {
       height: 46,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _AppColors.accentLight.withOpacity(0.25),
+        color: _AppColors.accentLight.withValues(alpha: 0.25),
         image: url != null
             ? DecorationImage(image: NetworkImage(url!), fit: BoxFit.cover)
             : null,
@@ -692,8 +709,9 @@ class _PinBadge extends StatelessWidget {
 
 class _AddFab extends StatelessWidget {
   final VoidCallback? onPressed;
+  final String? maestroId;
 
-  const _AddFab({this.onPressed});
+  const _AddFab({this.onPressed, this.maestroId});
 
   @override
   Widget build(BuildContext context) {
@@ -704,7 +722,9 @@ class _AddFab extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (_) => const InscribirEstudiantePage()),
+                  builder: (_) => InscribirEstudiantePage(
+                        maestroId: maestroId,
+                      )),
             );
           },
       backgroundColor: _AppColors.accent,

@@ -1,6 +1,7 @@
 class Estudiante {
   final String id;
-  final String usuarioId;
+  final String? nombre;
+  final String? apellido;
   final String? curso;
   final int? grupo;
   final double promedio;
@@ -15,9 +16,16 @@ class Estudiante {
   final List<String> leccionesDesbloqueadas;
   final List<String> logrosDesbloqueados;
 
+  // Campos adicionales de Keiner
+  final String? usuarioId;
+  final int leccionesCompletadas;
+  final int escaneoExitosos;
+  final int vocablosAprendidos;
+
   Estudiante({
     required this.id,
-    required this.usuarioId,
+    this.nombre,
+    this.apellido,
     this.curso,
     this.grupo,
     this.promedio = 0,
@@ -31,13 +39,21 @@ class Estudiante {
     this.escaneosExitosos = 0,
     this.leccionesDesbloqueadas = const ['leccion_1'],
     this.logrosDesbloqueados = const [],
+    // Inicialización de campos de Keiner
+    this.usuarioId,
+    this.leccionesCompletadas = 0,
+    this.escaneoExitosos = 0,
+    this.vocablosAprendidos = 0,
   });
 
-  // Convertir desde JSON (por ejemplo desde Supabase)
+  // Factory unificado
   factory Estudiante.fromJson(Map<String, dynamic> json) {
+    final usuario = json['usuario'];
     return Estudiante(
       id: json['id'],
       usuarioId: json['usuario_id'],
+      nombre: usuario != null ? usuario['nombre'] : json['nombre'],
+      apellido: usuario != null ? usuario['apellido'] : json['apellido'],
       curso: json['curso'],
       grupo: json['grupo'],
       promedio: (json['promedio'] ?? 0).toDouble(),
@@ -47,19 +63,19 @@ class Estudiante {
       xpHoy: json['xp_hoy'] ?? 0,
       rachaDias: json['racha_dias'] ?? 0,
       ultimaActividad: json['ultima_actividad'] != null
-          ? DateTime.parse(json['ultima_actividad'])
+          ? DateTime.tryParse(json['ultima_actividad'])
           : null,
-      leccionesCompletadasTotal:
-          json['lecciones_completadas_total'] ?? 0,
+      leccionesCompletadasTotal: json['lecciones_completadas_total'] ?? 0,
+      leccionesCompletadas: json['lecciones_completadas_total'] ?? 0,
       escaneosExitosos: json['escaneos_exitosos'] ?? 0,
-      leccionesDesbloqueadas:
-          List<String>.from(json['lecciones_desbloqueadas'] ?? []),
-      logrosDesbloqueados:
-          List<String>.from(json['logros_desbloqueados'] ?? []),
+      escaneoExitosos: json['escaneos_exitosos'] ?? 0,
+      vocablosAprendidos: json['vocablosAprendidos'] ?? 0,
+      leccionesDesbloqueadas: List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
+      logrosDesbloqueados: List<String>.from(json['logros_desbloqueados'] ?? []),
     );
   }
 
-  // Convertir a JSON (para insertar/actualizar)
+  // ToJson unificado
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -77,6 +93,10 @@ class Estudiante {
       'escaneos_exitosos': escaneosExitosos,
       'lecciones_desbloqueadas': leccionesDesbloqueadas,
       'logros_desbloqueados': logrosDesbloqueados,
+      'vocablosAprendidos': vocablosAprendidos,
     };
   }
 }
+
+// Alias para mantener compatibilidad con el código de Keiner
+typedef EstudianteModel = Estudiante;

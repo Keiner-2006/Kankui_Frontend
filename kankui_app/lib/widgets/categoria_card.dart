@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
+import '../models/categoria_model.dart';
 import '../data/seed/vocablos_data.dart';
-
 
 /// Tarjeta de categoría de vocablos
 class CategoriaCard extends StatelessWidget {
-  final CategoriaVocablo categoria;
+  final CategoriaModel categoria;
   final int cantidadVocablos;
   final double progreso;
   final VoidCallback onTap;
@@ -69,7 +69,7 @@ class CategoriaCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    categoria.descripcion,
+                    categoria.descripcion ?? 'Explora el vocabulario de ${categoria.nombre}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textoClaro,
                         ),

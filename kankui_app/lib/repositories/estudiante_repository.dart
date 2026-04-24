@@ -10,18 +10,29 @@ class EstudianteRepository {
 
   // ==========================================
   // CREATE / UPDATE (Upsert)
-  // Guarda un nuevo estudiante o sobreescribe uno existente si los IDs coinciden
+  // Guarda un nuevo estudiante y devuelve el registro guardado (incluye PIN de la BD)
   // ==========================================
- /* Future<bool> guardarEstudiante(Estudiante estudiante) async {
+/* Future<bool> guardarEstudiante(Estudiante estudiante) async {
+=======
+  Future<Estudiante?> guardarEstudiante(Estudiante estudiante) async {
+
     try {
-      await supabase.from(_tableName).upsert(estudiante.toJson());
-      developer.log('Estudiante guardado exitosamente: ${estudiante.id}',
-          name: 'EstudianteRepository');
-      return true;
+      final List<dynamic> response = await supabase
+          .from(_tableName)
+          .insert(estudiante.toJson())
+          .select()
+          .timeout(const Duration(seconds: 10));
+
+      if (response.isNotEmpty) {
+        developer.log('Estudiante guardado exitosamente: ${estudiante.id}',
+            name: 'EstudianteRepository');
+        return Estudiante.fromJson(response.first);
+      }
+      return null;
     } catch (e) {
       developer.log('Error al guardar estudiante: $e',
           name: 'EstudianteRepository', error: e);
-      return false;
+      rethrow; // Propaga el error para diagnóstico
     }
   }
 */
@@ -66,13 +77,38 @@ Future<bool> guardarEstudiante({
     }
   }
 
+  Future<List<Estudiante>> obtenerTodos() async {
+    try {
+      final response = await supabase
+          .from(_tableName)
+          .select('''
+            id,
+            usuario_id,
+            pin,
+            curso,
+            xp_total,
+            usuario:usuario_id (
+              nombre,
+              apellido
+            )
+          ''');
+
+      print('📦 RAW RESPONSE: $response');
+
+      return response.map<Estudiante>((json) => Estudiante.fromJson(json)).toList();
+    } catch (e, stack) {
+      print('❌ ERROR EN REPO: $e');
+      print(stack);
+      return [];
+    }
+  }
+
   // ==========================================
   // READ (Todos o Ranking)
   // Sirve para leaderboards o ver a todos los alumnos de un curso
   // ==========================================
   Future<List<Estudiante>> obtenerEstudiantesXCurso(String cursoId) async {
     try {
-      // Ejemplo: Ordenados por XP Total (Mecánica de gamificación/Leaderboard)
       final List<dynamic> response = await supabase
           .from(_tableName)
           .select()
@@ -88,8 +124,7 @@ Future<bool> guardarEstudiante({
   }
 
   // ==========================================
-  // UPDATE (Parcial - Muy Útil para Acciones Específicas)
-  // Revisa la base de datos para no enviar un objeto gigante si solo actualizas la racha
+  // UPDATE (Parcial)
   // ==========================================
   Future<bool> actualizarGamificacion({
     required String usuarioId,
@@ -97,11 +132,9 @@ Future<bool> guardarEstudiante({
     bool incrementarRacha = false,
   }) async {
     try {
-      // 1. Conseguimos el estado actual
       final modeloActual = await obtenerPerfilEstudiante(usuarioId);
       if (modeloActual == null) return false;
 
-      // 2. Modificamos valores
       final mapToUpdate = {
         'xp_total': modeloActual.xpTotal + xpSumar,
         'xp_hoy': modeloActual.xpHoy + xpSumar,
@@ -112,7 +145,6 @@ Future<bool> guardarEstudiante({
         mapToUpdate['racha_dias'] = modeloActual.rachaDias + 1;
       }
 
-      // 3. Enviamos actualización de columnas específicas
       await supabase
           .from(_tableName)
           .update(mapToUpdate)
@@ -130,7 +162,6 @@ Future<bool> guardarEstudiante({
 
   // ==========================================
   // DELETE
-  // Elimina un estudiante de la tabla de estudiantes
   // ==========================================
   Future<bool> eliminarEstudiante(String idEstudiante) async {
     try {
