@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/data/local/palabra_local.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/seed/vocablos_data.dart';
@@ -41,7 +42,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
   Future<void> _fetchCategorias() async {
     final repo = locator<CategoriaRepository>();
     final categorias = await repo.getCategorias();
-    
+
     if (mounted) {
       setState(() {
         _categorias = categorias;
@@ -132,9 +133,6 @@ class _LessonsScreenState extends State<LessonsScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final categoria = _categorias[index];
-                    // Nota: Todavía usamos VocablosData para los vocablos hasta que se cree PalabraRepository
-                    final vocablosCategoria =
-                        VocablosData.obtenerPorCategoria(categoria.id);
                     final progreso = _calcularProgresoCategoria(categoria.id);
 
                     return Padding(
@@ -143,23 +141,35 @@ class _LessonsScreenState extends State<LessonsScreen> {
                         categoria: categoria,
                         cantidadVocablos: categoria.totalPalabras,
                         progreso: progreso,
-                        onTap: () {
-                          if (vocablosCategoria.isEmpty) {
+                        onTap: () async {
+                          final palabraLocal = PalabraLocal();
+                          final data = await palabraLocal.obtenerPorCategoria(categoria.id);
+
+                          if (data.isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Esta categoría aún no tiene vocablos asignados.'),
-                                backgroundColor: AppColors.terracota,
-                                behavior: SnackBarBehavior.floating,
+                                content: Text('No hay palabras en esta categoría'),
                               ),
                             );
                             return;
                           }
+
+                          final vocablos = data.map((e) => Vocablo(
+                            id: e['id'],
+                            palabra: e['termino'],
+                            significado: e['traduccion'],
+                            fonetica: e['pronunciacion'],
+                            categoria: e['categoria_id'],
+                            descripcionCultural: null,
+                            enRecuperacion: false,
+                          )).toList();
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => LessonDetailScreen(
+                              builder: (_) => LessonDetailScreen(
                                 categoria: categoria,
-                                vocablos: vocablosCategoria,
+                                vocablos: vocablos,
                               ),
                             ),
                           );
@@ -188,7 +198,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
 
   Widget _buildProgresoGeneral(BuildContext context) {
     final totalVocablos = VocablosData.vocablos.length;
-    final aprendidos = widget.userProgress.leccionesCompletadas * 3; // Simulación
+    final aprendidos = widget.userProgress.leccionesCompletadas * 3;
     final porcentaje = (aprendidos / totalVocablos).clamp(0.0, 1.0);
 
     return Container(
@@ -240,7 +250,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: AppColors.verdeSelva,
                         fontWeight: FontWeight.bold,
-                     ),
+                      ),
                 ),
               ),
             ],
@@ -378,7 +388,6 @@ class _LessonsScreenState extends State<LessonsScreen> {
   }
 
   double _calcularProgresoCategoria(String categoriaId) {
-    // Simulación de progreso
     if (categoriaId.contains('saludos')) return 0.75;
     if (categoriaId.contains('familia')) return 0.6;
     if (categoriaId.contains('naturaleza')) return 0.4;
@@ -387,6 +396,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
     return 0.1;
   }
 }
+
 class _TejidoBarraPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -395,7 +405,6 @@ class _TejidoBarraPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    // Patrón diagonal sutil
     for (double i = -size.height; i < size.width + size.height; i += 8) {
       canvas.drawLine(
         Offset(i, 0),
@@ -408,4 +417,3 @@ class _TejidoBarraPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

@@ -21,7 +21,7 @@ void main() async {
   // Configurar inyección de dependencias
   setupLocator();
 
-  await locator<PalabraLocal>().insertarPalabra("hola", "hello");
+
 
   //await locator<SyncService>().sincronizarPalabras();
   await locator<SyncService>().syncApp();
