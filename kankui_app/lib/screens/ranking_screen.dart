@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kankui_app/repositories/estudiante_repository.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
+import 'package:kankui_app/services/sesionmanager.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/user_progress.dart';
@@ -491,8 +492,8 @@ class _RankingScreenState extends State<RankingScreen> {
 
   Widget _buildRankingItem(BuildContext context, int index) {
     final EstudianteModel item = _ranking[index];
-    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
-
+    final currentUserId = SessionManager().usuario?.id;
+ print('Ranking item: ${item.usuarioId}, current user: $currentUserId');
     final isCurrentUser = item.usuarioId == currentUserId;
     final position      = index + 1;
 

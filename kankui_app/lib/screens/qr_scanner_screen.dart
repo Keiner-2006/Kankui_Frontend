@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../repositories/categoria_repository.dart';
 import '../data/seed/vocablos_data.dart';
 import '../services/service_locator.dart';
@@ -53,6 +54,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         if (code.startsWith('KANKUI_LESSON:')) {
           final String categoriaId = code.split(':').last;
           await _navigateToLesson(categoriaId);
+        } else if (code.startsWith('KANKUI_ITEM:')) {
+          final String vocabloId = code.split(':').last;
+          await _navigateToItem(vocabloId);
         } else {
           // Fallback a la pantalla de información general
           await _navigateToInfo(code);
@@ -71,12 +75,24 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   Future<void> _navigateToLesson(String categoriaId) async {
     try {
-      // Mostrar un indicador de carga si es necesario
       final categoriaRepo = locator<CategoriaRepository>();
       final CategoriaModel? categoria = await categoriaRepo.getCategoriaById(categoriaId);
 
       if (categoria != null) {
-        final vocablos = VocablosData.obtenerPorCategoria(categoriaId);
+        // Mapeo inteligente para enlazar la base de datos con los datos locales
+        final nombreBuscado = categoria.nombre.toLowerCase();
+        String idEstatico = nombreBuscado.replaceAll(' ', '_');
+        
+        if (nombreBuscado.contains('saludo')) idEstatico = 'saludos';
+        else if (nombreBuscado.contains('familia')) idEstatico = 'familia';
+        else if (nombreBuscado.contains('naturaleza')) idEstatico = 'naturaleza';
+        else if (nombreBuscado.contains('objeto') || nombreBuscado.contains('sagrado')) idEstatico = 'objetos_sagrados';
+        else if (nombreBuscado.contains('numero') || nombreBuscado.contains('número')) idEstatico = 'numeros';
+        else if (nombreBuscado.contains('color')) idEstatico = 'colores';
+        else if (nombreBuscado.contains('animal')) idEstatico = 'animales';
+        else if (nombreBuscado.contains('planta')) idEstatico = 'plantas';
+
+        final vocablos = VocablosData.vocablos.where((v) => v.categoria == idEstatico).toList();
         
         if (!mounted) return;
         
@@ -94,6 +110,88 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       }
     } catch (e) {
       _showError('Error al cargar la lección: $e');
+    }
+  }
+
+  Future<void> _navigateToItem(String vocabloId) async {
+    try {
+      // Buscamos directamente en Supabase por el UUID real del QR
+      final supabase = Supabase.instance.client;
+      final response = await supabase
+          .from('palabra')
+          .select()
+          .eq('id', vocabloId)
+          .maybeSingle();
+
+      if (response == null) {
+        _showError('No se encontró la palabra en la base de datos.');
+        return;
+      }
+
+      final termino = response['termino'] ?? 'Palabra';
+      final traduccion = response['traduccion'] ?? 'Sin traducción';
+      final pronunciacion = response['pronunciacion'] ?? '';
+
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          backgroundColor: const Color(0xFFFFF8F0),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD4730A),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 40),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                termino,
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF5C2E00)),
+              ),
+              if (pronunciacion.isNotEmpty)
+                Text(
+                  '[ $pronunciacion ]',
+                  style: const TextStyle(fontSize: 14, color: Color(0xFF8A6E5C), fontStyle: FontStyle.italic),
+                ),
+              const SizedBox(height: 8),
+              Text(
+                '"$traduccion"',
+                style: const TextStyle(fontSize: 18, fontStyle: FontStyle.italic, color: Color(0xFF8A6E5C)),
+              ),
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 16),
+              Text(
+                '¡Has descubierto una palabra de la lengua Kankuama! Recuérdala bien.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF2C1A0E), height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.check_circle_outline_rounded),
+                label: const Text('¡Entendido!'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5C2E00),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      _showError('Error al cargar el objeto: $e');
     }
   }
 
@@ -179,7 +277,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(color: Colors.white30, width: 1),
                 ),
@@ -214,7 +312,7 @@ class _ScannerOverlayPainter extends CustomPainter {
           RRect.fromRectAndRadius(scanWindow, const Radius.circular(16)));
 
     final backgroundPaint = Paint()
-      ..color = Colors.black.withOpacity(0.6)
+      ..color = Colors.black.withValues(alpha: 0.6)
       ..style = PaintingStyle.fill;
 
     final backgroundWithCutout = Path.combine(

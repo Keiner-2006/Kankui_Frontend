@@ -12,7 +12,70 @@ class EstudianteRepository {
   // CREATE / UPDATE (Upsert)
   // Guarda un nuevo estudiante y devuelve el registro guardado (incluye PIN de la BD)
   // ==========================================
+
   Future<Estudiante?> guardarEstudiante(Estudiante estudiante) async {
+  try {
+    final docStr = estudiante.identificacion.toString();
+
+    // ✅ 1. Solo números
+    final soloNumeros = RegExp(r'^[0-9]+$');
+    if (!soloNumeros.hasMatch(docStr)) {
+      throw Exception('La cédula solo debe contener números');
+    }
+
+    // ✅ 2. Longitud
+    if (docStr.length < 6) {
+      throw Exception('Cédula demasiado corta (mínimo 6 dígitos)');
+    }
+
+    if (docStr.length > 11) {
+      throw Exception('Cédula excedió su longitud');
+    }
+
+    // ✅ 3. Parseo seguro
+    final docInt = int.tryParse(docStr);
+    if (docInt == null) {
+      throw Exception('La cédula no es válida');
+    }
+
+    // ⚠️ 4. Límite real de PostgreSQL (INTEGER)
+    if (docInt > 2147483647) {
+      throw Exception('Cédula excedió su longitud');
+    }
+
+    // ✅ 5. VALIDAR QUE NO EXISTA (UNICIDAD)
+    final existente = await supabase
+        .from(_tableName)
+        .select('id')
+        .eq('numero_documento', docInt)
+        .maybeSingle();
+
+    if (existente != null) {
+      throw Exception('La cédula ya está registrada');
+    }
+
+    // ✅ 6. INSERTAR SOLO SI TODO PASA
+    final List<dynamic> response = await supabase
+        .from(_tableName)
+        .insert(estudiante.toJson())
+        .select()
+        .timeout(const Duration(seconds: 10));
+
+    if (response.isNotEmpty) {
+      developer.log('Estudiante guardado exitosamente: ${estudiante.id}',
+          name: 'EstudianteRepository');
+      return Estudiante.fromJson(response.first);
+    }
+
+    return null;
+  } catch (e) {
+    developer.log('Error al guardar estudiante: $e',
+        name: 'EstudianteRepository', error: e);
+    rethrow;
+  }
+}
+
+ /* Future<Estudiante?> guardarEstudiante(Estudiante estudiante) async {
     try {
       final List<dynamic> response = await supabase
           .from(_tableName)
@@ -32,13 +95,10 @@ class EstudianteRepository {
       rethrow; // Propaga el error para diagnóstico
     }
   }
-
-
-Future<List<Estudiante>> obtenerRankingGlobal() async {
-  try {
-    final response = await supabase
-        .from(_tableName)
-        .select('''
+*/
+  Future<List<Estudiante>> obtenerRankingGlobal() async {
+    try {
+      final response = await supabase.from(_tableName).select('''
           id,
           usuario_id,
           xp_total,
@@ -50,18 +110,18 @@ Future<List<Estudiante>> obtenerRankingGlobal() async {
             nombre,
             apellido
           )
-        ''')
-        .order('xp_total', ascending: false);
+        ''').order('xp_total', ascending: false);
 
-    return (response as List)
-        .map((json) => Estudiante.fromJson(json))
-        .toList();
-  } catch (e, stack) {
-    developer.log('Error ranking global: $e',
-        name: 'EstudianteRepository', error: e, stackTrace: stack);
-    return [];
+      return (response as List)
+          .map((json) => Estudiante.fromJson(json))
+          .toList();
+    } catch (e, stack) {
+      developer.log('Error ranking global: $e',
+          name: 'EstudianteRepository', error: e, stackTrace: stack);
+      return [];
+    }
   }
-}
+
   // ==========================================
   // READ (Uno)
   // Obtiene un estudiante según el ID de usuario de autenticación
@@ -87,23 +147,25 @@ Future<List<Estudiante>> obtenerRankingGlobal() async {
 
   Future<List<Estudiante>> obtenerTodos() async {
     try {
-      final response = await supabase
-          .from(_tableName)
-          .select('''
+      final response = await supabase.from(_tableName).select('''
             id,
             usuario_id,
             pin,
             curso,
             xp_total,
             usuario:usuario_id (
+              id,
               nombre,
-              apellido
+              apellido,
+              identificacion
             )
           ''');
 
       print('📦 RAW RESPONSE: $response');
 
-      return response.map<Estudiante>((json) => Estudiante.fromJson(json)).toList();
+      return response
+          .map<Estudiante>((json) => Estudiante.fromJson(json))
+          .toList();
     } catch (e, stack) {
       print('❌ ERROR EN REPO: $e');
       print(stack);

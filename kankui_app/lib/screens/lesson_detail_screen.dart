@@ -3,6 +3,8 @@ import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../models/categoria_model.dart';
 import '../data/seed/vocablos_data.dart';
+import '../services/audio_service.dart';
+import '../screens/quiz_screen.dart';
 
 class LessonDetailScreen extends StatefulWidget {
   final CategoriaModel categoria;
@@ -21,6 +23,12 @@ class LessonDetailScreen extends StatefulWidget {
 class _LessonDetailScreenState extends State<LessonDetailScreen> {
   int _currentIndex = 0;
   bool _showSignificado = false;
+
+  @override
+  void dispose() {
+    audioService.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,16 +104,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
             ),
             child: Text(
               '${_currentIndex + 1}/${widget.vocablos.length}',
-              style: Theme.of(
-                context,
-              ).textTheme.labelLarge?.copyWith(color: AppColors.terracota),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppColors.terracota),
             ),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Barra de progreso
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
             height: 6,
@@ -119,15 +124,10 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
-                      width:
-                          constraints.maxWidth *
-                          ((_currentIndex + 1) / widget.vocablos.length),
+                      width: constraints.maxWidth * ((_currentIndex + 1) / widget.vocablos.length),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [
-                            AppColors.terracota,
-                            AppColors.terracotaLight,
-                          ],
+                          colors: [AppColors.terracota, AppColors.terracotaLight],
                         ),
                         borderRadius: BorderRadius.circular(3),
                       ),
@@ -143,7 +143,6 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  // Tarjeta principal del vocablo
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -162,20 +161,17 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Instrucción
                   Text(
                     'Toca la tarjeta para ver ${_showSignificado ? 'la palabra' : 'el significado'}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textoClaro,
-                    ),
+                          color: AppColors.textoClaro,
+                        ),
                   ),
 
                   const SizedBox(height: 20),
 
-                  // Botones de acción
                   Row(
                     children: [
-                      // Botón de audio
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -193,24 +189,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                             color: AppColors.terracota,
                           ),
                           iconSize: 28,
-                          onPressed: () {
-                            // Reproducir audio
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('🔊 ${vocablo.fonetica}'),
-                                duration: const Duration(seconds: 1),
-                                backgroundColor: AppColors.terracota,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: vocablo.audioPath?.isNotEmpty == true
+                              ? () => _reproducirAudio(vocablo)
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // Botones de navegación
                       Expanded(
                         child: Row(
                           children: [
@@ -276,29 +260,43 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icono decorativo
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+          // Imagen de la palabra (más grande y visible)
+          if (vocablo.imagePath != null && vocablo.imagePath!.isNotEmpty)
+            Container(
+              width: 200,
+              height: 200,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(24),
+                image: DecorationImage(
+                  image: NetworkImage(vocablo.imagePath!),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: KankuiIcons.tejido(size: 48, color: Colors.white),
             ),
-            child: KankuiIcons.tejido(size: 40, color: Colors.white),
-          ),
-          const SizedBox(height: 32),
-          // Palabra
+
+          const SizedBox(height: 16),
           Text(
             vocablo.palabra,
             style: Theme.of(context).textTheme.displayLarge?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 48,
-              letterSpacing: 2,
-            ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 42,
+                  letterSpacing: 2,
+                ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 16),
-          // Fonética
+          const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             decoration: BoxDecoration(
@@ -308,13 +306,12 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
             child: Text(
               '/${vocablo.fonetica}/',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontStyle: FontStyle.italic,
-              ),
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontStyle: FontStyle.italic,
+                  ),
             ),
           ),
           const Spacer(),
-          // Indicador "en recuperación" si aplica
           if (vocablo.enRecuperacion) ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -329,9 +326,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                   const SizedBox(width: 8),
                   Text(
                     'Palabra en recuperación',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: Colors.white),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.white),
                   ),
                 ],
               ),
@@ -361,7 +356,6 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icono decorativo
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -371,17 +365,15 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
             child: KankuiIcons.hoja(size: 40, color: AppColors.verdeSelva),
           ),
           const SizedBox(height: 32),
-          // Significado
           Text(
             vocablo.significado,
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
-              color: AppColors.textoOscuro,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: AppColors.textoOscuro,
+                  fontWeight: FontWeight.bold,
+                ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          // Descripción cultural
           if (vocablo.descripcionCultural != null) ...[
             Container(
               padding: const EdgeInsets.all(20),
@@ -393,27 +385,15 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(
-                        Icons.info_outline_rounded,
-                        color: AppColors.terracota,
-                        size: 20,
-                      ),
+                      const Icon(Icons.info_outline_rounded, color: AppColors.terracota, size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        'Conocimiento de los Mayores',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.terracota,
-                        ),
-                      ),
+                      Text('Conocimiento de los Mayores', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: AppColors.terracota)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     vocablo.descripcionCultural!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textoMedio,
-                      height: 1.5,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textoMedio, height: 1.5),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -421,14 +401,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
             ),
           ],
           const Spacer(),
-          // Palabra pequeña
-          Text(
-            vocablo.palabra,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: AppColors.terracota,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(vocablo.palabra, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.terracota, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -450,7 +423,6 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         _showSignificado = false;
       });
     } else {
-      // Completar lección
       _showCompletionDialog();
     }
   }
@@ -462,88 +434,37 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         backgroundColor: Colors.transparent,
         child: Container(
           padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(32),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.verdeSelva.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.celebration_rounded,
-                  color: AppColors.verdeSelva,
-                  size: 56,
-                ),
+                decoration: BoxDecoration(color: AppColors.verdeSelva.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.celebration_rounded, color: AppColors.verdeSelva, size: 56),
               ),
               const SizedBox(height: 24),
-              Text(
-                '¡Sewá!',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  color: AppColors.verdeSelva,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '(¡Gracias!)',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.textoClaro,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
+              Text('¡Sewá!', style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: AppColors.verdeSelva, fontWeight: FontWeight.bold)),
+              Text('(¡Gracias!)', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textoClaro, fontStyle: FontStyle.italic)),
               const SizedBox(height: 16),
-              Text(
-                'Has completado la lección de ${widget.categoria.nombre}',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(color: AppColors.textoMedio),
-                textAlign: TextAlign.center,
-              ),
+              Text('Has completado la lección de ${widget.categoria.nombre}', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textoMedio), textAlign: TextAlign.center),
               const SizedBox(height: 24),
-              // XP ganado
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.doradoSol.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.star_rounded,
-                      color: AppColors.doradoSol,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '+${widget.vocablos.length * 10} XP',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            color: AppColors.doradoSol,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(color: AppColors.doradoSol.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.star_rounded, color: AppColors.doradoSol, size: 28),
+                  const SizedBox(width: 8),
+                  Text('+${widget.vocablos.length * 10} XP', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.doradoSol, fontWeight: FontWeight.bold)),
+                ]),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Cerrar diálogo
-                  Navigator.pop(context); // Volver a lecciones
+                  Navigator.pop(context);
+                  _mostrarOpcionesPostLeccion();
                 },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
                 child: const Text('Continuar'),
               ),
             ],
@@ -551,5 +472,85 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         ),
       ),
     );
+  }
+
+  void _mostrarOpcionesPostLeccion() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('¿Qué deseas hacer ahora?', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.textoOscuro, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _mostrarQuiz();
+                },
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 56), backgroundColor: AppColors.terracota, foregroundColor: Colors.white),
+                icon: const Icon(Icons.quiz_rounded),
+                label: const Text('Hacer Quiz'),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _currentIndex = 0;
+                    _showSignificado = false;
+                  });
+                },
+                style: OutlinedButton.styleFrom(minimumSize: const Size(double.infinity, 56), side: const BorderSide(color: AppColors.terracota)),
+                icon: const Icon(Icons.replay_rounded, color: AppColors.terracota),
+                label: Text('Repetir Lección', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.terracota)),
+              ),
+            ),
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Volver al Inicio')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _mostrarQuiz() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizScreen(
+          categoria: widget.categoria,
+          leccionId: widget.categoria.id,
+          cantidadPreguntas: widget.vocablos.length,
+          desdeLeccion: true,
+          vocablosLeccion: widget.vocablos,
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: const Text('¡Quiz completado exitosamente!'), backgroundColor: AppColors.verdeSelva, behavior: SnackBarBehavior.floating),
+      );
+    }
+  }
+
+  Future<void> _reproducirAudio(Vocablo vocablo) async {
+    if (await audioService.play(vocablo.audioPath ?? '')) {
+      debugPrint('Audio reproduciendo: ${vocablo.palabra}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo reproducir el audio'),
+          backgroundColor: AppColors.terracota,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 }

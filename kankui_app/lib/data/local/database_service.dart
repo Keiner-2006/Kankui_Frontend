@@ -15,7 +15,7 @@ class DatabaseService {
     return _database!;
   }
 
- /* Future<Database> _initDatabase() async {
+  /* Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'kankui_local.db');
     return await openDatabase(
       path,
@@ -27,22 +27,20 @@ class DatabaseService {
   }
 */
 
-Future<Database> _initDatabase() async {
-  String path = join(await getDatabasesPath(), 'kankui_local.db');
+  Future<Database> _initDatabase() async {
+    String path = join(await getDatabasesPath(), 'kankui_local.db');
 
-  final db = await openDatabase(
-    path,
-    version: 1,
-    onCreate: _onCreate,
-    onUpgrade: _onUpgrade,
-  );
+    final db = await openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
 
-  
-  await db.execute('PRAGMA foreign_keys = ON');
+    await db.execute('PRAGMA foreign_keys = ON');
 
-  return db;
-}
-
+    return db;
+  }
 
   Future<void> _onCreate(Database db, int version) async {
     // ========================================
@@ -60,16 +58,17 @@ Future<Database> _initDatabase() async {
     ''');
 
     await db.execute('''
-      CREATE TABLE palabra (
-        id TEXT PRIMARY KEY,
-        termino TEXT NOT NULL,
-        pronunciacion TEXT,
-        traduccion TEXT,
-        sync_status TEXT DEFAULT 'pending',
-        audio_url TEXT,
-        categoria_id TEXT,
-        FOREIGN KEY (categoria_id) REFERENCES categoria(id)
-      )
+       CREATE TABLE palabra (
+         id TEXT PRIMARY KEY,
+         termino TEXT NOT NULL,
+         pronunciacion TEXT,
+         traduccion TEXT,
+         sync_status TEXT DEFAULT 'pending',
+         audio_url TEXT,
+         image_url TEXT,
+         categoria_id TEXT,
+         FOREIGN KEY (categoria_id) REFERENCES categoria(id)
+       )
     ''');
 
     await db.execute('''
@@ -113,7 +112,7 @@ Future<Database> _initDatabase() async {
       CREATE TABLE usuario (
         id TEXT PRIMARY KEY,
         nombre TEXT NOT NULL,
-        identificacion INTEGER NOT NULL,
+        identificacion TEXT NOT NULL,
         rol TEXT NOT NULL DEFAULT 'estudiante',
         fecha_registro TEXT,
         institucion_id TEXT
@@ -145,8 +144,7 @@ Future<Database> _initDatabase() async {
         escaneos_exitosos INTEGER DEFAULT 0,
         lecciones_desbloqueadas TEXT DEFAULT '["leccion_1"]',
         logros_desbloqueados TEXT DEFAULT '[]',
-        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
-        FOREIGN KEY (maestro_id) REFERENCES maestro(id)
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id)
       )
     ''');
 
@@ -209,17 +207,27 @@ Future<Database> _initDatabase() async {
     ''');
 
     // Indices para mejorar performance
-    await db.execute('CREATE INDEX idx_palabra_categoria ON palabra(categoria_id)');
-    await db.execute('CREATE INDEX idx_pregunta_palabra ON pregunta(palabra_id)');
+    await db
+        .execute('CREATE INDEX idx_palabra_categoria ON palabra(categoria_id)');
+    await db
+        .execute('CREATE INDEX idx_pregunta_palabra ON pregunta(palabra_id)');
     await db.execute('CREATE INDEX idx_reto_leccion ON reto(leccion_id)');
-    await db.execute('CREATE INDEX idx_progreso_cat_usuario ON progreso_categoria(usuario_id)');
-    await db.execute('CREATE INDEX idx_progreso_reto_usuario ON progreso_reto(usuario_id)');
-    await db.execute('CREATE INDEX idx_resultado_usuario ON resultado_quiz(usuario_id)');
-    await db.execute('CREATE INDEX idx_estudiante_usuario ON estudiante(usuario_id)');
+    await db.execute(
+        'CREATE INDEX idx_progreso_cat_usuario ON progreso_categoria(usuario_id)');
+    await db.execute(
+        'CREATE INDEX idx_progreso_reto_usuario ON progreso_reto(usuario_id)');
+    await db.execute(
+        'CREATE INDEX idx_resultado_usuario ON resultado_quiz(usuario_id)');
+    await db.execute(
+        'CREATE INDEX idx_estudiante_usuario ON estudiante(usuario_id)');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Manejar migraciones futuras aqui
+    if (oldVersion < 2) {
+      // Version 2: Añadir columna image_url a la tabla palabra
+      await db.execute('ALTER TABLE palabra ADD COLUMN image_url TEXT');
+    }
   }
 
   /// Limpiar toda la base de datos (para logout o reset)

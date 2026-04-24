@@ -2,6 +2,7 @@ class Estudiante {
   final String id;
   final String? nombre;
   final String? apellido;
+  final String identificacion;
   final String? curso;
   final int? grupo;
   final double promedio;
@@ -22,10 +23,14 @@ class Estudiante {
   final int escaneoExitosos;
   final int vocablosAprendidos;
 
+  // Identificación del usuario (join con tabla usuario)
+  //final String identificacion;
+
   Estudiante({
     required this.id,
     this.nombre,
     this.apellido,
+    required this.identificacion,
     this.curso,
     this.grupo,
     this.promedio = 0,
@@ -44,14 +49,19 @@ class Estudiante {
     this.leccionesCompletadas = 0,
     this.escaneoExitosos = 0,
     this.vocablosAprendidos = 0,
+    //this.identificacion = '',
   });
 
   // Factory unificado
   factory Estudiante.fromJson(Map<String, dynamic> json) {
     final usuario = json['usuario'];
+
     return Estudiante(
       id: json['id'],
       usuarioId: json['usuario_id'],
+      identificacion: usuario != null
+          ? (usuario['identificacion']?.toString() ?? '')
+          : (json['identificacion']?.toString() ?? ''),
       nombre: usuario != null ? usuario['nombre'] : json['nombre'],
       apellido: usuario != null ? usuario['apellido'] : json['apellido'],
       curso: json['curso'],
@@ -70,8 +80,12 @@ class Estudiante {
       escaneosExitosos: json['escaneos_exitosos'] ?? 0,
       escaneoExitosos: json['escaneos_exitosos'] ?? 0,
       vocablosAprendidos: json['vocablosAprendidos'] ?? 0,
-      leccionesDesbloqueadas: List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
-      logrosDesbloqueados: List<String>.from(json['logros_desbloqueados'] ?? []),
+      leccionesDesbloqueadas:
+          List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
+      logrosDesbloqueados:
+          List<String>.from(json['logros_desbloqueados'] ?? []),
+      // Extraer identificación del join con usuario
+      
     );
   }
 
@@ -80,6 +94,7 @@ class Estudiante {
     return {
       'id': id,
       'usuario_id': usuarioId,
+      //'identificacion': identificacion,
       'curso': curso,
       'grupo': grupo,
       'promedio': promedio,
