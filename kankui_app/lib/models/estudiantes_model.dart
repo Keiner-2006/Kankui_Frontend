@@ -2,6 +2,7 @@ class Estudiante {
   final String id;
   final String? nombre;
   final String? apellido;
+  final String? identificacion;
   final String? curso;
   final int? grupo;
   final double promedio;
@@ -26,6 +27,7 @@ class Estudiante {
     required this.id,
     this.nombre,
     this.apellido,
+    this.identificacion,
     this.curso,
     this.grupo,
     this.promedio = 0,
@@ -52,6 +54,7 @@ class Estudiante {
     return Estudiante(
       id: json['id'],
       usuarioId: json['usuario_id'],
+      identificacion: json['identificacion'],
       nombre: usuario != null ? usuario['nombre'] : json['nombre'],
       apellido: usuario != null ? usuario['apellido'] : json['apellido'],
       curso: json['curso'],
@@ -80,6 +83,7 @@ class Estudiante {
     return {
       'id': id,
       'usuario_id': usuarioId,
+      'identificacion': identificacion,
       'curso': curso,
       'grupo': grupo,
       'promedio': promedio,
