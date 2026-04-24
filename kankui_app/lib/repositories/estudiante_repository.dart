@@ -33,12 +33,9 @@ class EstudianteRepository {
     }
   }
 
-
-Future<List<Estudiante>> obtenerRankingGlobal() async {
-  try {
-    final response = await supabase
-        .from(_tableName)
-        .select('''
+  Future<List<Estudiante>> obtenerRankingGlobal() async {
+    try {
+      final response = await supabase.from(_tableName).select('''
           id,
           usuario_id,
           xp_total,
@@ -50,18 +47,18 @@ Future<List<Estudiante>> obtenerRankingGlobal() async {
             nombre,
             apellido
           )
-        ''')
-        .order('xp_total', ascending: false);
+        ''').order('xp_total', ascending: false);
 
-    return (response as List)
-        .map((json) => Estudiante.fromJson(json))
-        .toList();
-  } catch (e, stack) {
-    developer.log('Error ranking global: $e',
-        name: 'EstudianteRepository', error: e, stackTrace: stack);
-    return [];
+      return (response as List)
+          .map((json) => Estudiante.fromJson(json))
+          .toList();
+    } catch (e, stack) {
+      developer.log('Error ranking global: $e',
+          name: 'EstudianteRepository', error: e, stackTrace: stack);
+      return [];
+    }
   }
-}
+
   // ==========================================
   // READ (Uno)
   // Obtiene un estudiante según el ID de usuario de autenticación
@@ -87,23 +84,25 @@ Future<List<Estudiante>> obtenerRankingGlobal() async {
 
   Future<List<Estudiante>> obtenerTodos() async {
     try {
-      final response = await supabase
-          .from(_tableName)
-          .select('''
+      final response = await supabase.from(_tableName).select('''
             id,
             usuario_id,
             pin,
             curso,
             xp_total,
             usuario:usuario_id (
+              id,
               nombre,
-              apellido
+              apellido,
+              identificacion
             )
           ''');
 
       print('📦 RAW RESPONSE: $response');
 
-      return response.map<Estudiante>((json) => Estudiante.fromJson(json)).toList();
+      return response
+          .map<Estudiante>((json) => Estudiante.fromJson(json))
+          .toList();
     } catch (e, stack) {
       print('❌ ERROR EN REPO: $e');
       print(stack);

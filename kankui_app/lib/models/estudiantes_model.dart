@@ -22,6 +22,9 @@ class Estudiante {
   final int escaneoExitosos;
   final int vocablosAprendidos;
 
+  // Identificación del usuario (join con tabla usuario)
+  final int identificacion;
+
   Estudiante({
     required this.id,
     this.nombre,
@@ -44,6 +47,7 @@ class Estudiante {
     this.leccionesCompletadas = 0,
     this.escaneoExitosos = 0,
     this.vocablosAprendidos = 0,
+    this.identificacion = 0,
   });
 
   // Factory unificado
@@ -70,8 +74,13 @@ class Estudiante {
       escaneosExitosos: json['escaneos_exitosos'] ?? 0,
       escaneoExitosos: json['escaneos_exitosos'] ?? 0,
       vocablosAprendidos: json['vocablosAprendidos'] ?? 0,
-      leccionesDesbloqueadas: List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
-      logrosDesbloqueados: List<String>.from(json['logros_desbloqueados'] ?? []),
+      leccionesDesbloqueadas:
+          List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
+      logrosDesbloqueados:
+          List<String>.from(json['logros_desbloqueados'] ?? []),
+      // Extraer identificación del join con usuario
+      identificacion:
+          usuario != null ? (usuario['identificacion'] ?? 0) as int : 0,
     );
   }
 
