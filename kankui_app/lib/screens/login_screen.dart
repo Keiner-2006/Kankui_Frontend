@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
-import 'package:get_it/get_it.dart';
-import '../repositories/maestro_repository.dart';
-import '../models/maestro_model.dart';
+import '../services/sesionmanager.dart';
+import '../models/usuario_model.dart';
+
 import '../services/auth_services.dart';
 import '../data/remote/supabase_service.dart';
 // ─────────────────────────────────────────────
@@ -300,7 +300,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
         .maybeSingle();
 
     if (!mounted) return;
-
+  
     if (estudiante == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -310,6 +310,19 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
       );
       return;
     }
+    // Crear modelo de usuario
+      final usuarioModel = UsuarioModel(
+        id: usuario['id'],
+        nombre: usuario['nombre'],
+        identificacion: int.parse(identificacion),
+        rol: 'estudiante',
+      );
+
+      // 🔥 GUARDAR SESIÓN GLOBAL
+      print('Usuario autenticado: ${usuarioModel.nombre}, ID: ${usuarioModel.id}');
+      SessionManager().loginEstudiante(usuarioModel);
+
+
 
     // 3. Login exitoso - navegar al HomeScreen
     Navigator.pushReplacement(
