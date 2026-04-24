@@ -5,7 +5,7 @@ import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
 import 'package:get_it/get_it.dart';
 import '../repositories/maestro_repository.dart';
-import 'package:kankui_app/models/maestro_model.dart';
+import '../models/maestro_model.dart';
 import '../services/auth_services.dart';
 import '../data/remote/supabase_service.dart';
 // ─────────────────────────────────────────────
@@ -49,7 +49,7 @@ class LoginScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: LoginColors.brownDark.withOpacity(0.35),
+                      color: LoginColors.brownDark.withValues(alpha: 0.35),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -183,7 +183,7 @@ class _RoleCard extends StatelessWidget {
       color: LoginColors.white,
       borderRadius: BorderRadius.circular(16),
       elevation: 2,
-      shadowColor: LoginColors.brownDark.withOpacity(0.15),
+      shadowColor: LoginColors.brownDark.withValues(alpha: 0.15),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
@@ -348,7 +348,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: LoginColors.white.withOpacity(0.8),
+                      color: LoginColors.white.withValues(alpha: 0.8),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -374,7 +374,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: LoginColors.gold.withOpacity(0.3),
+                            color: LoginColors.gold.withValues(alpha: 0.3),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -425,12 +425,12 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                           backgroundColor: LoginColors.brownDark,
                           foregroundColor: LoginColors.cream,
                           disabledBackgroundColor:
-                              LoginColors.brownDark.withOpacity(0.6),
+                              LoginColors.brownDark.withValues(alpha: 0.6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 4,
-                          shadowColor: LoginColors.brownDark.withOpacity(0.4),
+                          shadowColor: LoginColors.brownDark.withValues(alpha: 0.4),
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -659,7 +659,7 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: LoginColors.white.withOpacity(0.8),
+                      color: LoginColors.white.withValues(alpha: 0.8),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -688,7 +688,7 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: LoginColors.brownDark.withOpacity(0.3),
+                            color: LoginColors.brownDark.withValues(alpha: 0.3),
                             blurRadius: 16,
                             offset: const Offset(0, 6),
                           ),
@@ -730,7 +730,7 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: LoginColors.brownDark.withOpacity(0.08),
+                            color: LoginColors.brownDark.withValues(alpha: 0.08),
                             blurRadius: 20,
                             offset: const Offset(0, 6),
                           ),
@@ -773,13 +773,13 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
                                 backgroundColor: LoginColors.brownDark,
                                 foregroundColor: LoginColors.cream,
                                 disabledBackgroundColor:
-                                    LoginColors.brownDark.withOpacity(0.6),
+                                    LoginColors.brownDark.withValues(alpha: 0.6),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 elevation: 4,
                                 shadowColor:
-                                    LoginColors.brownDark.withOpacity(0.4),
+                                    LoginColors.brownDark.withValues(alpha: 0.4),
                               ),
                               child: _isLoading
                                   ? const SizedBox(
