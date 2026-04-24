@@ -61,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _customStartDate != null &&
           _customEndDate != null) {
         // Rango personalizado explícito
-        data = await _analyticsRepo.getDashboardDataForRange(
+              data = await _analyticsRepo.getDashboardDataForRange(
           user.id,
           _customStartDate!,
           _customEndDate!,
@@ -128,22 +128,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = await Supabase.instance.client
         .from('usuario')
-        .select('nombre, institucion_id, rol')
+        .select('nombre, institucion_id')
         .eq('id', user?.id ?? '')
         .maybeSingle();
 
     String userName = 'Docente';
     String institution = 'Institución';
-    String rol = 'desconocido';
 
     if (metadata != null) {
       userName = metadata['nombre'] as String? ?? 'Docente';
-      rol = metadata['rol'] as String? ?? 'desconocido';
       // TODO: Obtener nombre de institución desde tabla institucion
     }
-
-    print('📄 [PDF EXPORT] Usuario: $userName, Rol: $rol');
-    print('   Datos del dashboard: ${_dashboardData!.totalXp} XP, ${_dashboardData!.lecciones} lecciones');
 
     await _exportService.exportDashboardAsPdf(
       context: context,
