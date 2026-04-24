@@ -94,7 +94,7 @@ class Estudiante {
     return {
       'id': id,
       'usuario_id': usuarioId,
-      'identificacion': identificacion,
+      //'identificacion': identificacion,
       'curso': curso,
       'grupo': grupo,
       'promedio': promedio,
