@@ -24,7 +24,8 @@ class QuizQuestionScreen extends StatefulWidget {
   State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
-class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTickerProviderStateMixin {
+class _QuizQuestionScreenState extends State<QuizQuestionScreen>
+    with SingleTickerProviderStateMixin {
   final QuizRepository _quizRepository = QuizRepository();
   late List<PreguntaQuizModel> _preguntas;
   late List<int?> _respuestasUsuario;
@@ -52,8 +53,29 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
     );
 
     _timerController.addStatusListener((status) {
-      if (status == AnimationStatus.completed && !_respondida) {
-        _siguientePregunta();
+      if (status == AnimationStatus.completed && !_respondida && mounted) {
+        // ⏰️ Tiempo agotado: registrar como no respondida y mostrar resultado
+        setState(() {
+          _mostrandoResultado = true;
+          // No cambiamos _respondida para evitar que aparezca el botón "Continuar"
+        });
+        _respuestasUsuario[_preguntaIndex] = null;
+
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            setState(() {
+              _mostrandoResultado = false;
+              _selectedOptionIndex = null;
+              _preguntaIndex++;
+              if (_preguntaIndex < _preguntas.length) {
+                _timerController.reset();
+                _timerController.forward();
+              } else {
+                _finalizarQuiz();
+              }
+            });
+          }
+        });
       }
     });
 
@@ -141,16 +163,14 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                       _buildPista(pregunta.pista!),
 
                     // Resultado
-                    if (_mostrandoResultado)
-                      _buildResultadoPregunta(pregunta),
+                    if (_mostrandoResultado) _buildResultadoPregunta(pregunta),
                   ],
                 ),
               ),
             ),
 
             // Botón siguiente
-            if (_respondida)
-              _buildBotonSiguiente(),
+            if (_respondida) _buildBotonSiguiente(),
           ],
         ),
       ),
@@ -205,9 +225,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                   ? 'Palabra Kankuama → Significado'
                   : 'Significado → Palabra Kankuama',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: pregunta.tipo == TipoPreguntaQuiz.kankuamaASignificado
-                        ? AppColors.verdeSelva
-                        : AppColors.terracota,
+                    color:
+                        pregunta.tipo == TipoPreguntaQuiz.kankuamaASignificado
+                            ? AppColors.verdeSelva
+                            : AppColors.terracota,
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -296,6 +317,48 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
   }
 
   Widget _buildResultadoPregunta(PreguntaQuizModel pregunta) {
+    // Si no hay respuesta seleccionada (tiempo agotado)
+    if (_selectedOptionIndex == null) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.terracota.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.timer_off_rounded,
+              color: AppColors.terracota,
+              size: 28,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '¡Tiempo agotado!',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppColors.terracota,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  Text(
+                    'La respuesta correcta es: ${pregunta.respuestaCorrecta}',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textoMedio,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final acierto = _selectedOptionIndex == pregunta.respuestaCorrectaIndex;
 
     return Container(
@@ -322,7 +385,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                 Text(
                   acierto ? '¡Correcto!' : 'Incorrecto',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: acierto ? AppColors.verdeSelva : AppColors.terracota,
+                        color: acierto
+                            ? AppColors.verdeSelva
+                            : AppColors.terracota,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -406,11 +471,17 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
   void _finalizarQuiz() {
     _timerController.stop();
 
+    // 🔥 Cálculo manual: comparar cada respuesta con la correcta
+    int correctas = 0;
+    for (int i = 0; i < _preguntas.length; i++) {
+      final respuesta = _respuestasUsuario[i];
+      if (respuesta != null &&
+          respuesta == _preguntas[i].respuestaCorrectaIndex) {
+        correctas++;
+      }
+    }
+
     final respuestasValidas = _respuestasUsuario.where((r) => r != null).length;
-    final correctas = _quizRepository.calcularRespuestasCorrectas(
-      _preguntas,
-      _respuestasUsuario.where((r) => r != null).cast<int>().toList(),
-    );
 
     final resultado = {
       'total': _preguntas.length,
@@ -597,8 +668,8 @@ class QuizResumenScreen extends StatelessWidget {
                       final pregunta = preguntas[index];
                       final respuestaUsuario = respuestasUsuario[index];
                       final respondida = respuestaUsuario != null;
-                      final correcta =
-                          respondida && respuestaUsuario == pregunta.respuestaCorrectaIndex;
+                      final correcta = respondida &&
+                          respuestaUsuario == pregunta.respuestaCorrectaIndex;
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -609,8 +680,10 @@ class QuizResumenScreen extends StatelessWidget {
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: correcta
-                                    ? AppColors.verdeSelva.withValues(alpha: 0.2)
-                                    : AppColors.terracota.withValues(alpha: 0.2),
+                                    ? AppColors.verdeSelva
+                                        .withValues(alpha: 0.2)
+                                    : AppColors.terracota
+                                        .withValues(alpha: 0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -638,7 +711,10 @@ class QuizResumenScreen extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Tu respuesta: ${respondida ? pregunta.opciones[respuestaUsuario] : "No respondida"}',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
                                           color: respondida
                                               ? (correcta
                                                   ? AppColors.verdeSelva
