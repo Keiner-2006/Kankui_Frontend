@@ -5,6 +5,7 @@ import 'package:kankui_app/models/reto_model.dart';
 import 'package:kankui_app/models/pregunta_quiz_model.dart';
 import 'package:kankui_app/repositories/quiz_repository.dart';
 import 'package:kankui_app/widgets/opcion_respuesta_widget.dart';
+import 'package:kankui_app/services/audio_service.dart';
 
 /// Pantalla de pregunta individual del Quiz
 /// Muestra una pregunta con opciones múltiples
@@ -62,6 +63,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
   @override
   void dispose() {
     _timerController.dispose();
+    audioService.stop();
     super.dispose();
   }
 
@@ -442,7 +444,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
   }
 
   Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
-    print('Progreso guardado: $resultado');
+    debugPrint('Progreso guardado: $resultado');
   }
 
   void _mostrarConfirmacionSalida() {

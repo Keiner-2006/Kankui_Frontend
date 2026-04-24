@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../models/categoria_model.dart';
 import '../data/seed/vocablos_data.dart';
+import '../services/audio_service.dart';
 import '../screens/quiz_screen.dart';
 
 class LessonDetailScreen extends StatefulWidget {
@@ -22,6 +23,12 @@ class LessonDetailScreen extends StatefulWidget {
 class _LessonDetailScreenState extends State<LessonDetailScreen> {
   int _currentIndex = 0;
   bool _showSignificado = false;
+
+  @override
+  void dispose() {
+    audioService.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -165,6 +172,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
 
                   Row(
                     children: [
+                      // Botón de audio
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -182,22 +190,13 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                             color: AppColors.terracota,
                           ),
                           iconSize: 28,
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('🔊 ${vocablo.fonetica}'),
-                                duration: const Duration(seconds: 1),
-                                backgroundColor: AppColors.terracota,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: vocablo.audioUrl.isNotEmpty
+                              ? () => _reproducirAudio(vocablo)
+                              : null,
                         ),
                       ),
                       const SizedBox(width: 12),
+                      // Botones de navegación
                       Expanded(
                         child: Row(
                           children: [
@@ -238,6 +237,21 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _reproducirAudio(Vocablo vocablo) async {
+    if (await audioService.play(vocablo.audioUrl)) {
+      // Éxito silencioso
+      debugPrint('Audio reproduciendo: ${vocablo.termino}');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo reproducir el audio'),
+          backgroundColor: AppColors.terracota,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   Widget _buildPalabraCard(BuildContext context, Vocablo vocablo) {
@@ -379,7 +393,7 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
                   const SizedBox(height: 8),
                   Text(
                     vocablo.descripcionCultural!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textoMedio, height: 1.5),
+                    style: Theme.of(context).textSchema.bodyMedium?.copyWith(color: AppColors.textoMedio, height: 1.5),
                     textAlign: TextAlign.center,
                   ),
                 ],
