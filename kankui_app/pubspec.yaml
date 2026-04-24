@@ -20,6 +20,11 @@ dependencies:
   mobile_scanner: ^7.2.0
   qr_flutter: ^4.1.0
   audioplayers: ^5.0.0  # Reproducción de audios
+  intl: ^0.20.2
+  fl_chart: ^1.2.0
+  pdf: ^3.12.0
+  printing: ^5.14.3
+  path_provider: ^2.1.2
 
 dev_dependencies:
   flutter_test:

@@ -16,19 +16,50 @@ class QrScannerScreen extends StatefulWidget {
   State<QrScannerScreen> createState() => _QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  late MobileScannerController cameraController;
+class _QrScannerScreenState extends State<QrScannerScreen>
+    with WidgetsBindingObserver {
+  MobileScannerController? cameraController;
   bool _isProcessing = false;
+  bool _isCameraInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initCamera();
+  }
+
+  void _initCamera() {
     cameraController = MobileScannerController();
+    _isProcessing = false;
+    _isCameraInitialized = true;
+  }
+
+  void _disposeCamera() {
+    cameraController?.dispose();
+    cameraController = null;
+    _isCameraInitialized = false;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (cameraController == null) return;
+
+    if (state == AppLifecycleState.inactive) {
+      cameraController?.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      if (mounted && !_isProcessing) {
+        cameraController?.start();
+      }
+    }
   }
 
   @override
   void dispose() {
-    cameraController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _disposeCamera();
     super.dispose();
   }
 
@@ -39,7 +70,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       final String? code = barcodes.first.rawValue;
       if (code != null) {
         debugPrint('🔍 QR Detectado: $code');
-        
+
         // 1. Vibración para confirmar detección
         await HapticFeedback.lightImpact();
 
@@ -48,7 +79,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         });
 
         // Pausar la cámara
-        await cameraController.stop();
+        await cameraController?.stop();
 
         // 2. Lógica de redirección según el contenido
         if (code.startsWith('KANKUI_LESSON:')) {
@@ -63,11 +94,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         }
 
         // 3. Reactivar al volver
-        if (mounted) {
+        if (mounted && cameraController != null && !_isProcessing) {
           setState(() {
             _isProcessing = false;
           });
-          await cameraController.start();
+          await cameraController?.start();
         }
       }
     }
@@ -76,26 +107,38 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   Future<void> _navigateToLesson(String categoriaId) async {
     try {
       final categoriaRepo = locator<CategoriaRepository>();
-      final CategoriaModel? categoria = await categoriaRepo.getCategoriaById(categoriaId);
+      final CategoriaModel? categoria =
+          await categoriaRepo.getCategoriaById(categoriaId);
 
       if (categoria != null) {
         // Mapeo inteligente para enlazar la base de datos con los datos locales
         final nombreBuscado = categoria.nombre.toLowerCase();
         String idEstatico = nombreBuscado.replaceAll(' ', '_');
-        
-        if (nombreBuscado.contains('saludo')) idEstatico = 'saludos';
-        else if (nombreBuscado.contains('familia')) idEstatico = 'familia';
-        else if (nombreBuscado.contains('naturaleza')) idEstatico = 'naturaleza';
-        else if (nombreBuscado.contains('objeto') || nombreBuscado.contains('sagrado')) idEstatico = 'objetos_sagrados';
-        else if (nombreBuscado.contains('numero') || nombreBuscado.contains('número')) idEstatico = 'numeros';
-        else if (nombreBuscado.contains('color')) idEstatico = 'colores';
-        else if (nombreBuscado.contains('animal')) idEstatico = 'animales';
+
+        if (nombreBuscado.contains('saludo'))
+          idEstatico = 'saludos';
+        else if (nombreBuscado.contains('familia'))
+          idEstatico = 'familia';
+        else if (nombreBuscado.contains('naturaleza'))
+          idEstatico = 'naturaleza';
+        else if (nombreBuscado.contains('objeto') ||
+            nombreBuscado.contains('sagrado'))
+          idEstatico = 'objetos_sagrados';
+        else if (nombreBuscado.contains('numero') ||
+            nombreBuscado.contains('número'))
+          idEstatico = 'numeros';
+        else if (nombreBuscado.contains('color'))
+          idEstatico = 'colores';
+        else if (nombreBuscado.contains('animal'))
+          idEstatico = 'animales';
         else if (nombreBuscado.contains('planta')) idEstatico = 'plantas';
 
-        final vocablos = VocablosData.vocablos.where((v) => v.categoria == idEstatico).toList();
-        
+        final vocablos = VocablosData.vocablos
+            .where((v) => v.categoria == idEstatico)
+            .toList();
+
         if (!mounted) return;
-        
+
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -137,7 +180,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
           backgroundColor: const Color(0xFFFFF8F0),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -149,22 +193,32 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   color: Color(0xFFD4730A),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 40),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    color: Colors.white, size: 40),
               ),
               const SizedBox(height: 20),
               Text(
                 termino,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF5C2E00)),
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF5C2E00)),
               ),
               if (pronunciacion.isNotEmpty)
                 Text(
                   '[ $pronunciacion ]',
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF8A6E5C), fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF8A6E5C),
+                      fontStyle: FontStyle.italic),
                 ),
               const SizedBox(height: 8),
               Text(
                 '"$traduccion"',
-                style: const TextStyle(fontSize: 18, fontStyle: FontStyle.italic, color: Color(0xFF8A6E5C)),
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFF8A6E5C)),
               ),
               const SizedBox(height: 16),
               const Divider(),
@@ -172,7 +226,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               Text(
                 '¡Has descubierto una palabra de la lengua Kankuama! Recuérdala bien.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF2C1A0E), height: 1.5),
+                style: const TextStyle(
+                    fontSize: 14, color: Color(0xFF2C1A0E), height: 1.5),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -183,7 +238,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                   backgroundColor: const Color(0xFF5C2E00),
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
                 ),
               ),
             ],
@@ -230,30 +286,39 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: ValueListenableBuilder<MobileScannerState>(
-              valueListenable: cameraController,
-              builder: (context, state, child) {
-                switch (state.torchState) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off, color: Colors.white);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on, color: Colors.yellow);
-                  case TorchState.auto:
-                    return const Icon(Icons.flash_auto, color: Colors.white);
-                  case TorchState.unavailable:
-                    return const Icon(Icons.flash_off, color: Colors.grey);
-                }
-              },
-            ),
-            onPressed: () => cameraController.toggleTorch(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.cameraswitch, color: Colors.white),
-            onPressed: () => cameraController.switchCamera(),
-          ),
-        ],
+        actions: cameraController != null
+            ? [
+                IconButton(
+                  icon: ValueListenableBuilder<MobileScannerState>(
+                    valueListenable: cameraController!,
+                    builder: (context, state, child) {
+                      if (state.torchState == null) {
+                        return const Icon(Icons.flash_off, color: Colors.grey);
+                      }
+                      switch (state.torchState!) {
+                        case TorchState.off:
+                          return const Icon(Icons.flash_off,
+                              color: Colors.white);
+                        case TorchState.on:
+                          return const Icon(Icons.flash_on,
+                              color: Colors.yellow);
+                        case TorchState.auto:
+                          return const Icon(Icons.flash_auto,
+                              color: Colors.white);
+                        case TorchState.unavailable:
+                          return const Icon(Icons.flash_off,
+                              color: Colors.grey);
+                      }
+                    },
+                  ),
+                  onPressed: () => cameraController?.toggleTorch(),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.cameraswitch, color: Colors.white),
+                  onPressed: () => cameraController?.switchCamera(),
+                ),
+              ]
+            : null,
       ),
       extendBodyBehindAppBar: true,
       body: Stack(

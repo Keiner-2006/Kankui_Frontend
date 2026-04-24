@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kankui_app/repositories/estudiante_repository.dart';
 import 'package:kankui_app/screens/inscribirestudiante_screen.dart';
+import 'package:kankui_app/screens/dashboard_screen.dart';
 import 'package:kankui_app/services/service_locator.dart';
 import 'package:kankui_app/data/remote/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -250,14 +251,26 @@ class _DocenteScreenState extends State<DocenteScreen> {
 
   // ── Build ─────────────────────────────────────────────────────
 
+  /// Construye la pantalla actual según el índice seleccionado
+  Widget _buildCurrentTab() {
+    switch (_currentIndex) {
+      case 0:
+        return _buildEstudiantesTab();
+      case 1:
+        return const DashboardScreen();
+      case 2:
+        return const RecursosQrScreen();
+      default:
+        return _buildEstudiantesTab();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _AppColors.background,
       body: SafeArea(
-        child: _currentIndex == 0 
-            ? _buildEstudiantesTab() 
-            : const RecursosQrScreen(),
+        child: _buildCurrentTab(),
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -285,6 +298,11 @@ class _DocenteScreenState extends State<DocenteScreen> {
               label: 'Estudiantes',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart_rounded),
+              activeIcon: Icon(Icons.bar_chart_rounded),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.qr_code_2_rounded),
               activeIcon: Icon(Icons.qr_code_2_rounded),
               label: 'Recursos QR',
@@ -292,8 +310,7 @@ class _DocenteScreenState extends State<DocenteScreen> {
           ],
         ),
       ),
-      // ── FAB AGREGAR (Solo visible en Estudiantes) ─────────────
-      floatingActionButton: _currentIndex == 0 
+      floatingActionButton: _currentIndex == 0
           ? _AddFab(
               onPressed: widget.onAgregarEstudiante,
               maestroId: widget.maestroId,
@@ -761,28 +778,3 @@ class _AddFab extends StatelessWidget {
 // Reemplaza con tu propio MaterialApp / navegación
 // ============================================================
 
-void main() {
-  runApp(const _DemoApp());
-}
-
-class _DemoApp extends StatelessWidget {
-  const _DemoApp();
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Admin IE',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: _AppColors.accent),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-      ),
-      home: DocenteScreen(
-        profesor: _profesorEjemplo, 
-        onAgregarEstudiante: () {},
-        onExportar: () {},
-      ),
-    );
-  }
-}
