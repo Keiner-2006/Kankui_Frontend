@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/services/notificacion_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../models/categoria_model.dart';
@@ -427,52 +428,121 @@ class _LessonDetailScreenState extends State<LessonDetailScreen> {
     }
   }
 
-  void _showCompletionDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: AppColors.verdeSelva.withValues(alpha: 0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.celebration_rounded, color: AppColors.verdeSelva, size: 56),
+  void _showCompletionDialog() async {
+  if (!mounted) return;
+
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.verdeSelva.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
-              const SizedBox(height: 24),
-              Text('¡Sewá!', style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: AppColors.verdeSelva, fontWeight: FontWeight.bold)),
-              Text('(¡Gracias!)', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textoClaro, fontStyle: FontStyle.italic)),
-              const SizedBox(height: 16),
-              Text('Has completado la lección de ${widget.categoria.nombre}', style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.textoMedio), textAlign: TextAlign.center),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(color: AppColors.doradoSol.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.star_rounded, color: AppColors.doradoSol, size: 28),
+              child: const Icon(
+                Icons.celebration_rounded,
+                color: AppColors.verdeSelva,
+                size: 56,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '¡Sewá!',
+              style: Theme.of(context)
+                  .textTheme
+                  .headlineLarge
+                  ?.copyWith(
+                    color: AppColors.verdeSelva,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            Text(
+              '(¡Gracias!)',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(
+                    color: AppColors.textoClaro,
+                    fontStyle: FontStyle.italic,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Has completado la lección de ${widget.categoria.nombre}',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.copyWith(color: AppColors.textoMedio),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.doradoSol.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.star_rounded,
+                    color: AppColors.doradoSol,
+                    size: 28,
+                  ),
                   const SizedBox(width: 8),
-                  Text('+${widget.vocablos.length * 10} XP', style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.doradoSol, fontWeight: FontWeight.bold)),
-                ]),
+                  Text(
+                    '+${widget.vocablos.length * 10} XP',
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
+                          color: AppColors.doradoSol,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _mostrarOpcionesPostLeccion();
-                },
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                child: const Text('Continuar'),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+
+                if (!mounted) return;
+
+                _mostrarOpcionesPostLeccion();
+
+                // 🔔 NOTIFICACIÓN DESPUÉS DEL FLUJO UI
+                await NotificationService.showLessonCompleted(
+                  widget.categoria.nombre,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
               ),
-            ],
-          ),
+              child: const Text('Continuar'),
+            ),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   void _mostrarOpcionesPostLeccion() {
     showModalBottomSheet(

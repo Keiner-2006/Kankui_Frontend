@@ -1,0 +1,16 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+
+class PushService {
+  static final _fcm = FirebaseMessaging.instance;
+
+  static Future init() async {
+    await _fcm.requestPermission();
+
+    String? token = await _fcm.getToken();
+    print('FCM TOKEN: $token');
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Mensaje recibido: ${message.notification?.title}');
+    });
+  }
+}

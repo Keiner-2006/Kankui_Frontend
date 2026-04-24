@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kankui_app/services/notificacion_service.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -21,6 +22,7 @@ void main() async {
   // Configurar inyección de dependencias
   setupLocator();
 
+   await NotificationService.init();
 
 
   //await locator<SyncService>().sincronizarPalabras();
