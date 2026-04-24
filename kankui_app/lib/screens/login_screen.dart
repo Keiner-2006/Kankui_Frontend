@@ -337,7 +337,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
       await userRepo.saveCurrentUser(UsuarioLocal(
         id: usuarioModel.id,
         nombre: usuarioModel.nombre,
-        identificacion: usuarioModel.identificacion,
+        identificacion: usuarioModel.identificacion.toString(),
         rol: usuarioModel.rol,
         fechaRegistro: usuarioModel.fechaRegistro.toIso8601String(),
         institucionId: usuarioModel.institucionId,

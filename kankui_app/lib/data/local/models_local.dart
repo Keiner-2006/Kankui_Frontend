@@ -233,7 +233,7 @@ class RetoLocal {
 class UsuarioLocal {
   final String id;
   final String nombre;
-  final int identificacion;
+  final String identificacion;
   final String rol;
   final String? fechaRegistro;
   final String? institucionId;

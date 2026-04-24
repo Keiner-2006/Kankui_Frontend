@@ -112,7 +112,7 @@ Future<Database> _initDatabase() async {
       CREATE TABLE usuario (
         id TEXT PRIMARY KEY,
         nombre TEXT NOT NULL,
-        identificacion INTEGER NOT NULL,
+        identificacion TEXT NOT NULL,
         rol TEXT NOT NULL DEFAULT 'estudiante',
         fecha_registro TEXT,
         institucion_id TEXT

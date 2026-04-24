@@ -2,7 +2,7 @@
  class UsuarioModel {
   final String id;
   String nombre;
-  int identificacion;
+  String identificacion;
   String rol;
   DateTime fechaRegistro;
   String? institucionId;
@@ -65,7 +65,7 @@
   // copyWith
   UsuarioModel copyWith({
     String? nombre,
-    int? identificacion,
+    String? identificacion,
     String? rol,
     DateTime? fechaRegistro,
     String? institucionId,
