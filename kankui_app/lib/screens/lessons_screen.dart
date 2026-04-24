@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kankui_app/data/local/palabra_local.dart';
+import 'package:kankui_app/services/notificacion_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/seed/vocablos_data.dart';
@@ -206,6 +207,22 @@ class _LessonsScreenState extends State<LessonsScreen> {
     final totalVocablos = VocablosData.vocablos.length;
     final aprendidos = widget.userProgress.leccionesCompletadas * 3;
     final porcentaje = (aprendidos / totalVocablos).clamp(0.0, 1.0);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+  if (!mounted) return;
+
+  if (porcentaje >= 0.5) {
+    await NotificationService.showProgress(50);
+  }
+
+  if (porcentaje >= 0.8) {
+    await NotificationService.showProgress(80);
+  }
+
+  if (porcentaje == 1.0) {
+    await NotificationService.showProgress(100);
+  }
+});
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),

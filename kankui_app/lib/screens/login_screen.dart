@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kankui_app/services/notificacion_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/screens/docente_screen.dart';
 import 'home_screen.dart';
@@ -369,6 +370,10 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
       print(
           'Progreso: XP Total=${usuarioModel.xpTotal}, Racha=${usuarioModel.rachaDias}');
       SessionManager().loginEstudiante(usuarioModel);
+
+      await NotificationService.showWelcome(
+  usuarioModel.nombre,
+);
 
       // 3. Login exitoso - navegar al HomeScreen
       Navigator.pushReplacement(
