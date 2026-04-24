@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/models/usuario_model.dart';
+import 'package:kankui_app/services/sesionmanager.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/user_progress.dart';
@@ -23,10 +25,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+ final session = SessionManager();
+
+UsuarioModel? get usuario => session.usuario;
+UserProgress get userProgress => session.progreso;
   List<CategoriaModel> _categorias = [];
   bool _loadingCategorias = true;
   int _currentIndex = 0;
 
+ 
   @override
   void initState() {
     super.initState();
@@ -59,31 +66,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  final UserProgress _userProgress = const UserProgress(
-    xpTotal: 450,
-    xpHoy: 35,
-    rachaDias: 5,
-    leccionesCompletadas: 8,
-    escaneoExitosos: 3,
-   
-    logrosDesbloqueados: ['primera_palabra', 'racha_3'],
-  );
+  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _loadingCategorias
           ? const Center(child: CircularProgressIndicator(color: AppColors.terracota))
-          : IndexedStack(
-              index: _currentIndex,
-              children: [
-                _HomeContent(userProgress: _userProgress, categorias: _categorias),
-                LessonsScreen(userProgress: _userProgress, initialCategorias: _categorias),
-                const QrScannerScreen(),
-                RankingScreen(userProgress: _userProgress),
-                ProfileScreen(userProgress: _userProgress),
-              ],
-            ),
+          :IndexedStack(
+  index: _currentIndex,
+  children: [
+    _HomeContent(
+      userProgress: userProgress,
+      categorias: _categorias,
+    ),
+    LessonsScreen(
+      userProgress: userProgress,
+      initialCategorias: _categorias,
+    ),
+    const QrScannerScreen(),
+    RankingScreen(userProgress: userProgress),
+    ProfileScreen(userProgress: userProgress),
+  ],
+),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
