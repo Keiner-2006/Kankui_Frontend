@@ -15,7 +15,7 @@ class DatabaseService {
     return _database!;
   }
 
-  Future<Database> _initDatabase() async {
+ /* Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'kankui_local.db');
     return await openDatabase(
       path,
@@ -23,7 +23,26 @@ class DatabaseService {
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
+
   }
+*/
+
+Future<Database> _initDatabase() async {
+  String path = join(await getDatabasesPath(), 'kankui_local.db');
+
+  final db = await openDatabase(
+    path,
+    version: 1,
+    onCreate: _onCreate,
+    onUpgrade: _onUpgrade,
+  );
+
+  
+  await db.execute('PRAGMA foreign_keys = ON');
+
+  return db;
+}
+
 
   Future<void> _onCreate(Database db, int version) async {
     // ========================================
@@ -46,6 +65,7 @@ class DatabaseService {
         termino TEXT NOT NULL,
         pronunciacion TEXT,
         traduccion TEXT,
+        sync_status TEXT DEFAULT 'pending',
         audio_url TEXT,
         categoria_id TEXT,
         FOREIGN KEY (categoria_id) REFERENCES categoria(id)
@@ -101,6 +121,14 @@ class DatabaseService {
     ''');
 
     await db.execute('''
+    CREATE TABLE maestro (
+      id TEXT PRIMARY KEY,
+      usuario_id TEXT NOT NULL,
+      FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+  )
+''');
+
+    await db.execute('''
       CREATE TABLE estudiante (
         id TEXT PRIMARY KEY,
         usuario_id TEXT NOT NULL UNIQUE,
@@ -117,7 +145,8 @@ class DatabaseService {
         escaneos_exitosos INTEGER DEFAULT 0,
         lecciones_desbloqueadas TEXT DEFAULT '["leccion_1"]',
         logros_desbloqueados TEXT DEFAULT '[]',
-        FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+        FOREIGN KEY (maestro_id) REFERENCES maestro(id)
       )
     ''');
 

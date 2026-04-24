@@ -12,7 +12,7 @@ class EstudianteRepository {
   // CREATE / UPDATE (Upsert)
   // Guarda un nuevo estudiante y devuelve el registro guardado (incluye PIN de la BD)
   // ==========================================
-  Future<EstudianteModel?> guardarEstudiante(EstudianteModel estudiante) async {
+  Future<Estudiante?> guardarEstudiante(Estudiante estudiante) async {
     try {
       final List<dynamic> response = await supabase
           .from(_tableName)
@@ -23,7 +23,7 @@ class EstudianteRepository {
       if (response.isNotEmpty) {
         developer.log('Estudiante guardado exitosamente: ${estudiante.id}',
             name: 'EstudianteRepository');
-        return EstudianteModel.fromJson(response.first);
+        return Estudiante.fromJson(response.first);
       }
       return null;
     } catch (e) {
@@ -33,11 +33,40 @@ class EstudianteRepository {
     }
   }
 
+
+Future<List<Estudiante>> obtenerRankingGlobal() async {
+  try {
+    final response = await supabase
+        .from(_tableName)
+        .select('''
+          id,
+          usuario_id,
+          xp_total,
+          racha_dias,
+          lecciones_completadas_total,
+          escaneos_exitosos,
+          logros_desbloqueados,
+          usuario:usuario_id (
+            nombre,
+            apellido
+          )
+        ''')
+        .order('xp_total', ascending: false);
+
+    return (response as List)
+        .map((json) => Estudiante.fromJson(json))
+        .toList();
+  } catch (e, stack) {
+    developer.log('Error ranking global: $e',
+        name: 'EstudianteRepository', error: e, stackTrace: stack);
+    return [];
+  }
+}
   // ==========================================
   // READ (Uno)
   // Obtiene un estudiante según el ID de usuario de autenticación
   // ==========================================
-  Future<EstudianteModel?> obtenerPerfilEstudiante(String usuarioId) async {
+  Future<Estudiante?> obtenerPerfilEstudiante(String usuarioId) async {
     try {
       final data = await supabase
           .from(_tableName)
@@ -46,7 +75,7 @@ class EstudianteRepository {
           .maybeSingle();
 
       if (data != null) {
-        return EstudianteModel.fromJson(data);
+        return Estudiante.fromJson(data);
       }
       return null;
     } catch (e) {
@@ -56,20 +85,45 @@ class EstudianteRepository {
     }
   }
 
+  Future<List<Estudiante>> obtenerTodos() async {
+    try {
+      final response = await supabase
+          .from(_tableName)
+          .select('''
+            id,
+            usuario_id,
+            pin,
+            curso,
+            xp_total,
+            usuario:usuario_id (
+              nombre,
+              apellido
+            )
+          ''');
+
+      print('📦 RAW RESPONSE: $response');
+
+      return response.map<Estudiante>((json) => Estudiante.fromJson(json)).toList();
+    } catch (e, stack) {
+      print('❌ ERROR EN REPO: $e');
+      print(stack);
+      return [];
+    }
+  }
+
   // ==========================================
   // READ (Todos o Ranking)
   // Sirve para leaderboards o ver a todos los alumnos de un curso
   // ==========================================
-  Future<List<EstudianteModel>> obtenerEstudiantesXCurso(String cursoId) async {
+  Future<List<Estudiante>> obtenerEstudiantesXCurso(String cursoId) async {
     try {
-      // Ejemplo: Ordenados por XP Total (Mecánica de gamificación/Leaderboard)
       final List<dynamic> response = await supabase
           .from(_tableName)
           .select()
           .eq('curso', cursoId)
           .order('xp_total', ascending: false);
 
-      return response.map((json) => EstudianteModel.fromJson(json)).toList();
+      return response.map((json) => Estudiante.fromJson(json)).toList();
     } catch (e) {
       developer.log('Error al listar estudiantes: $e',
           name: 'EstudianteRepository', error: e);
@@ -78,8 +132,7 @@ class EstudianteRepository {
   }
 
   // ==========================================
-  // UPDATE (Parcial - Muy Útil para Acciones Específicas)
-  // Revisa la base de datos para no enviar un objeto gigante si solo actualizas la racha
+  // UPDATE (Parcial)
   // ==========================================
   Future<bool> actualizarGamificacion({
     required String usuarioId,
@@ -87,11 +140,9 @@ class EstudianteRepository {
     bool incrementarRacha = false,
   }) async {
     try {
-      // 1. Conseguimos el estado actual
       final modeloActual = await obtenerPerfilEstudiante(usuarioId);
       if (modeloActual == null) return false;
 
-      // 2. Modificamos valores
       final mapToUpdate = {
         'xp_total': modeloActual.xpTotal + xpSumar,
         'xp_hoy': modeloActual.xpHoy + xpSumar,
@@ -102,7 +153,6 @@ class EstudianteRepository {
         mapToUpdate['racha_dias'] = modeloActual.rachaDias + 1;
       }
 
-      // 3. Enviamos actualización de columnas específicas
       await supabase
           .from(_tableName)
           .update(mapToUpdate)
@@ -120,7 +170,6 @@ class EstudianteRepository {
 
   // ==========================================
   // DELETE
-  // Elimina un estudiante de la tabla de estudiantes
   // ==========================================
   Future<bool> eliminarEstudiante(String idEstudiante) async {
     try {

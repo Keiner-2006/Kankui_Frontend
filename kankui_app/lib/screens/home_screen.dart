@@ -11,6 +11,9 @@ import 'ranking_screen.dart';
 import 'profile_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/sync/sync_service.dart';
+import '../models/categoria_model.dart';
+import '../repositories/categoria_repository.dart';
+import '../services/service_locator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,18 +23,41 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  List<CategoriaModel> _categorias = [];
+  bool _loadingCategorias = true;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _fetchData();
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
+  Future<void> _fetchData() async {
+    try {
+      // Sincronizar aplicación (Versión Alejandro)
       final syncService = SyncService(Supabase.instance.client);
       await syncService.syncApp();
-    });
-  }
-  int _currentIndex = 0;
 
+      // Cargar categorías (Versión Keiner)
+      final repo = locator<CategoriaRepository>();
+      final categorias = await repo.getCategorias();
+     categorias.sort((a, b) => a.orden.compareTo(b.orden));
+      if (mounted) {
+        setState(() {
+          _categorias = categorias;
+          _loadingCategorias = false;
+        });
+      }
+    } catch (e) {
+      print('Error en fetchData: $e');
+      if (mounted) {
+        setState(() {
+          _loadingCategorias = false;
+        });
+      }
+    }
+  }
 
   final UserProgress _userProgress = const UserProgress(
     xpTotal: 450,
@@ -39,28 +65,25 @@ class _HomeScreenState extends State<HomeScreen> {
     rachaDias: 5,
     leccionesCompletadas: 8,
     escaneoExitosos: 3,
-    leccionesDesbloqueadas: [
-      'leccion_1',
-      'leccion_2',
-      'leccion_3',
-      'leccion_4'
-    ],
+   
     logrosDesbloqueados: ['primera_palabra', 'racha_3'],
   );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          _HomeContent(userProgress: _userProgress),
-          LessonsScreen(userProgress: _userProgress),
-          const QrScannerScreen(),
-          RankingScreen(userProgress: _userProgress),
-          ProfileScreen(userProgress: _userProgress),
-        ],
-      ),
+      body: _loadingCategorias
+          ? const Center(child: CircularProgressIndicator(color: AppColors.terracota))
+          : IndexedStack(
+              index: _currentIndex,
+              children: [
+                _HomeContent(userProgress: _userProgress, categorias: _categorias),
+                LessonsScreen(userProgress: _userProgress, initialCategorias: _categorias),
+                const QrScannerScreen(),
+                RankingScreen(userProgress: _userProgress),
+                ProfileScreen(userProgress: _userProgress),
+              ],
+            ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -75,8 +98,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _HomeContent extends StatelessWidget {
   final UserProgress userProgress;
+  final List<CategoriaModel> categorias;
 
-  const _HomeContent({required this.userProgress});
+  const _HomeContent({
+    required this.userProgress,
+    required this.categorias,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -132,8 +159,8 @@ class _HomeContent extends StatelessWidget {
           // Mapa/Camino de lecciones
           SliverToBoxAdapter(
             child: SierraPath(
-              leccionesDesbloqueadas: userProgress.leccionesDesbloqueadas,
               leccionesCompletadas: userProgress.leccionesCompletadas,
+              categorias: categorias,
             ),
           ),
 

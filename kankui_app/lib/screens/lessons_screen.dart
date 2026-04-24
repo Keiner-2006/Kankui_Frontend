@@ -1,18 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:kankui_app/data/local/palabra_local.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
 import '../data/seed/vocablos_data.dart';
 import '../data/user_progress.dart';
 import '../widgets/categoria_card.dart';
+import '../models/categoria_model.dart';
+import '../repositories/categoria_repository.dart';
+import '../services/service_locator.dart';
 import 'lesson_detail_screen.dart';
 
-class LessonsScreen extends StatelessWidget {
+class LessonsScreen extends StatefulWidget {
   final UserProgress userProgress;
+  final List<CategoriaModel>? initialCategorias;
 
   const LessonsScreen({
     super.key,
     required this.userProgress,
+    this.initialCategorias,
   });
+
+  @override
+  State<LessonsScreen> createState() => _LessonsScreenState();
+}
+
+class _LessonsScreenState extends State<LessonsScreen> {
+  List<CategoriaModel> _categorias = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialCategorias != null) {
+      _categorias = widget.initialCategorias!;
+      _loading = false;
+    } else {
+      _fetchCategorias();
+    }
+  }
+
+  Future<void> _fetchCategorias() async {
+    final repo = locator<CategoriaRepository>();
+    final categorias = await repo.getCategorias();
+
+    if (mounted) {
+      setState(() {
+        _categorias = categorias;
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,41 +107,80 @@ class LessonsScreen extends StatelessWidget {
             ),
           ),
 
-          // Lista de categorías
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final categoria = VocablosData.categorias[index];
-                  final vocablosCategoria =
-                      VocablosData.obtenerPorCategoria(categoria.id);
-                  final progreso = _calcularProgresoCategoria(categoria.id);
+          // Lista de categorías (Cargando o Lista)
+          if (_loading)
+            const SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: AppColors.terracota),
+                ),
+              ),
+            )
+          else if (_categorias.isEmpty)
+            const SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Text('No hay categorías disponibles'),
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final categoria = _categorias[index];
+                    final progreso = _calcularProgresoCategoria(categoria.id);
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: CategoriaCard(
-                      categoria: categoria,
-                      cantidadVocablos: vocablosCategoria.length,
-                      progreso: progreso,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LessonDetailScreen(
-                              categoria: categoria,
-                              vocablos: vocablosCategoria,
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: CategoriaCard(
+                        categoria: categoria,
+                        cantidadVocablos: categoria.totalPalabras,
+                        progreso: progreso,
+                        onTap: () async {
+                          final palabraLocal = PalabraLocal();
+                          final data = await palabraLocal.obtenerPorCategoria(categoria.id);
+
+                          if (data.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('No hay palabras en esta categoría'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          final vocablos = data.map((e) => Vocablo(
+                            id: e['id'],
+                            palabra: e['termino'],
+                            significado: e['traduccion'],
+                            fonetica: e['pronunciacion'],
+                            categoria: e['categoria_id'],
+                            descripcionCultural: null,
+                            enRecuperacion: false,
+                          )).toList();
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LessonDetailScreen(
+                                categoria: categoria,
+                                vocablos: vocablos,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-                childCount: VocablosData.categorias.length,
+                          );
+                        },
+                      ),
+                    );
+                  },
+                  childCount: _categorias.length,
+                ),
               ),
             ),
-          ),
 
           // Sección especial: Palabras en Recuperación
           SliverToBoxAdapter(
@@ -122,7 +198,7 @@ class LessonsScreen extends StatelessWidget {
 
   Widget _buildProgresoGeneral(BuildContext context) {
     final totalVocablos = VocablosData.vocablos.length;
-    final aprendidos = userProgress.leccionesCompletadas * 3; // Simulación
+    final aprendidos = widget.userProgress.leccionesCompletadas * 3;
     final porcentaje = (aprendidos / totalVocablos).clamp(0.0, 1.0);
 
     return Container(
@@ -312,21 +388,12 @@ class LessonsScreen extends StatelessWidget {
   }
 
   double _calcularProgresoCategoria(String categoriaId) {
-    // Simulación de progreso
-    switch (categoriaId) {
-      case 'saludos':
-        return 0.75;
-      case 'familia':
-        return 0.6;
-      case 'naturaleza':
-        return 0.4;
-      case 'objetos_sagrados':
-        return 0.25;
-      case 'numeros':
-        return 0.5;
-      default:
-        return 0.1;
-    }
+    if (categoriaId.contains('saludos')) return 0.75;
+    if (categoriaId.contains('familia')) return 0.6;
+    if (categoriaId.contains('naturaleza')) return 0.4;
+    if (categoriaId.contains('objetos')) return 0.25;
+    if (categoriaId.contains('numeros')) return 0.5;
+    return 0.1;
   }
 }
 
@@ -338,7 +405,6 @@ class _TejidoBarraPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    // Patrón diagonal sutil
     for (double i = -size.height; i < size.width + size.height; i += 8) {
       canvas.drawLine(
         Offset(i, 0),
