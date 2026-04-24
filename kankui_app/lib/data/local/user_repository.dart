@@ -14,7 +14,12 @@ class UserRepository {
   Future<void> saveCurrentUser(UsuarioLocal usuario) async {
     final db = await _db.database;
     
-    // Limpiar usuario anterior si existe
+    // Limpiar usuario anterior si existe (en orden correcto para evitar FOREIGN KEY)
+    await db.delete('resultado_quiz');
+    await db.delete('progreso_reto');
+    await db.delete('progreso_categoria');
+    await db.delete('estudiante');
+    await db.delete('maestro');
     await db.delete('usuario');
     
     await db.insert(
