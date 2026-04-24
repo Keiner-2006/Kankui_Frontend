@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/categoria_model.dart';
+import '../data/seed/vocablos_data.dart';
 
 class CategoriaRepository {
   final SupabaseClient _client;
@@ -36,6 +37,31 @@ class CategoriaRepository {
     } catch (e) {
       print('Error al obtener categoría $id: $e');
       return null;
+    }
+  }
+
+  /// Obtiene las palabras reales desde Supabase y las formatea para la UI
+  Future<List<Vocablo>> getVocablosPorCategoria(String categoriaId) async {
+    try {
+      final response = await _client
+          .from('palabra')
+          .select()
+          .eq('categoria_id', categoriaId);
+      
+      return (response as List).map((json) {
+        return Vocablo(
+          id: json['id'].toString(),
+          palabra: json['termino'] ?? 'Sin término',
+          fonetica: json['pronunciacion'] ?? '',
+          significado: json['traduccion'] ?? 'Sin traducción',
+          categoria: categoriaId,
+          descripcionCultural: 'Conocimiento extraído de la base de datos Kankuama.',
+          nivelDificultad: 1,
+        );
+      }).toList();
+    } catch (e) {
+      print('Error al obtener palabras de la BD: $e');
+      return [];
     }
   }
 }

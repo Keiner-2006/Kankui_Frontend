@@ -557,7 +557,7 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
+        builder: (_) => DocenteScreen(profesor: profesorAutenticado),
       ),
     );
     } on AuthException catch (e) {

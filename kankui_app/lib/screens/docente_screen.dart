@@ -5,6 +5,7 @@ import 'package:kankui_app/services/service_locator.dart';
 import 'package:kankui_app/data/remote/supabase_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'recursos_qr_screen.dart';
 
 // ============================================================
 // MODELOS DE DATOS
@@ -85,20 +86,13 @@ class _AppColors {
 // PANTALLA PRINCIPAL: Panel de Administración
 // ============================================================
 
-class AdminPanelPage extends StatefulWidget {
-  /// Único dato requerido desde el exterior: el profesor autenticado.
-  /// Flujo esperado: Login → envía Profesor → AdminPanel carga estudiantes.
+class DocenteScreen extends StatefulWidget {
   final Profesor profesor;
-
-  /// Callback al pulsar "+" para agregar un estudiante.
   final VoidCallback? onAgregarEstudiante;
-
-  /// Callback al pulsar "Exportar".
   final VoidCallback? onExportar;
-
   final String? maestroId;
 
-  const AdminPanelPage({
+  const DocenteScreen({
     super.key,
     required this.profesor,
     this.onAgregarEstudiante,
@@ -107,11 +101,12 @@ class AdminPanelPage extends StatefulWidget {
   });
 
   @override
-  State<AdminPanelPage> createState() => _AdminPanelPageState();
+  State<DocenteScreen> createState() => _DocenteScreenState();
 }
 
-class _AdminPanelPageState extends State<AdminPanelPage> {
-  // ── Estado interno ───────────────────────────────────────────
+class _DocenteScreenState extends State<DocenteScreen> {
+  int _currentIndex = 0;
+  
   /// Lista maestra cargada desde la "API" (o mock).
   List<Estudiante> _todosLosEstudiantes = [];
 
@@ -261,39 +256,68 @@ class _AdminPanelPageState extends State<AdminPanelPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _AppColors.background,
-      body: RefreshIndicator(
-        // Pull-to-refresh llama a _cargarEstudiantes() de nuevo
-        onRefresh: _cargarEstudiantes,
-        color: _AppColors.accent,
-        child: Column(
-          children: [
-            // ── HEADER ──────────────────────────────────────────
-            _Header(
-              institucion:
-                  widget.profesor.institucion, // <-- viene del Profesor
+      body: SafeArea(
+        child: _currentIndex == 0 
+            ? _buildEstudiantesTab() 
+            : const RecursosQrScreen(),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
             ),
-
-            // ── BARRA DE BÚSQUEDA ───────────────────────────────
-            _SearchBar(controller: _searchController),
-
-            // ── CONTADOR + BOTÓN EXPORTAR ───────────────────────
-            _ListHeader(
-              cantidad: _estudiantesFiltrados.length,
-              onExportar: widget.onExportar,
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
+          selectedItemColor: _AppColors.accent,
+          unselectedItemColor: _AppColors.textSecondary,
+          backgroundColor: Colors.white,
+          type: BottomNavigationBarType.fixed,
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.group_rounded),
+              activeIcon: Icon(Icons.group_rounded),
+              label: 'Estudiantes',
             ),
-
-            // ── CUERPO: cargando / error / lista ────────────────
-            Expanded(
-              child: _buildBody(),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.qr_code_2_rounded),
+              activeIcon: Icon(Icons.qr_code_2_rounded),
+              label: 'Recursos QR',
             ),
           ],
         ),
       ),
+      // ── FAB AGREGAR (Solo visible en Estudiantes) ─────────────
+      floatingActionButton: _currentIndex == 0 
+          ? _AddFab(
+              onPressed: widget.onAgregarEstudiante,
+              maestroId: widget.maestroId,
+            )
+          : null,
+    );
+  }
 
-      // ── FAB AGREGAR ─────────────────────────────────────────
-      floatingActionButton: _AddFab(
-        onPressed: widget.onAgregarEstudiante,
-        maestroId: widget.maestroId,
+  Widget _buildEstudiantesTab() {
+    return RefreshIndicator(
+      onRefresh: _cargarEstudiantes,
+      color: _AppColors.accent,
+      child: Column(
+        children: [
+          _Header(institucion: widget.profesor.institucion),
+          _SearchBar(controller: _searchController),
+          _ListHeader(
+            cantidad: _estudiantesFiltrados.length,
+            onExportar: widget.onExportar,
+          ),
+          Expanded(child: _buildBody()),
+        ],
       ),
     );
   }
@@ -756,15 +780,10 @@ class _DemoApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: AdminPanelPage(
-        profesor: _profesorEjemplo, // ← inyectar desde auth/state
-        // 'estudiantes' ya NO existe: AdminPanel los carga internamente
-        onAgregarEstudiante: () {
-          // TODO: Navigator.push(...) a formulario de nuevo estudiante
-        },
-        onExportar: () {
-          // TODO: generar CSV / PDF y compartir
-        },
+      home: DocenteScreen(
+        profesor: _profesorEjemplo, 
+        onAgregarEstudiante: () {},
+        onExportar: () {},
       ),
     );
   }

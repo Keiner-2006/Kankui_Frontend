@@ -8,7 +8,13 @@ class AudioService {
   factory AudioService() => _instance;
   AudioService._internal();
 
-  final AudioPlayer _player = AudioPlayer();
+  // Configuración CRÍTICA: Usar PlayerMode.mediaPlayer para Android/iOS
+  // En versiones nuevas de audioplayers, el modo por defecto a veces falla.
+  final AudioPlayer _player = AudioPlayer(
+    playerId: 'kankui_audio_player',
+    mode: PlayerMode.mediaPlayer, // Fuerza el reproductor nativo
+  );
+  
   String? _currentUrl;
 
   /// Reproduce un audio desde una URL
@@ -22,7 +28,7 @@ class AudioService {
     try {
       // Si ya está reproduciendo este audio, lo pausa/reanuda
       if (_currentUrl == url) {
-        final state = await _player.getState();
+        final state = _player.state;
         if (state == PlayerState.playing) {
           await _player.pause();
           return true;
@@ -35,7 +41,12 @@ class AudioService {
       _currentUrl = url;
       debugPrint('[AudioService] Reproduciendo: $url');
 
+      // Release (libera) cualquier fuente anterior
+      await _player.stop();
+      
+      // Reproduce la nueva URL - Usa UrlSource explícito
       await _player.play(UrlSource(url));
+
       return true;
     } catch (e) {
       debugPrint('[AudioService] Error reproduciendo audio: $e');
@@ -64,8 +75,7 @@ class AudioService {
 
   /// Reproduce o pausa alternando estado
   Future<void> toggle(String url) async {
-    final state = await _player.getState();
-    if (state == PlayerState.playing && _currentUrl == url) {
+    if (_player.state == PlayerState.playing && _currentUrl == url) {
       await pause();
     } else {
       await play(url);
@@ -78,7 +88,7 @@ class AudioService {
   }
 
   /// Obtiene el estado actual del reproductor
-  Future<PlayerState> getState() => _player.getState();
+  PlayerState get state => _player.state;
 }
 
 /// Wrapper para facilitar el uso en widgets
