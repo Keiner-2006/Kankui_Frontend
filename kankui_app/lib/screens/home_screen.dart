@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:kankui_app/models/usuario_model.dart';
 import 'package:kankui_app/services/sesionmanager.dart';
 import '../theme/app_theme.dart';
 import '../theme/kankui_icons.dart';
@@ -14,6 +13,7 @@ import 'profile_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/sync/sync_service.dart';
 import '../models/categoria_model.dart';
+import '../models/usuario_model.dart';
 import '../repositories/categoria_repository.dart';
 import '../services/service_locator.dart';
 
@@ -25,31 +25,152 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
- final session = SessionManager();
+  final SessionManager session = SessionManager();
+  late UserProgress _userProgress;
 
-UsuarioModel? get usuario => session.usuario;
-UserProgress get userProgress => session.progreso;
   List<CategoriaModel> _categorias = [];
   bool _loadingCategorias = true;
   int _currentIndex = 0;
 
- 
   @override
   void initState() {
     super.initState();
+    _inicializarUserProgress();
     _fetchData();
+  }
+
+  void _inicializarUserProgress() {
+    print('═══════════════════════════════════════════');
+    print('📊 [XP DEBUG] Iniciando carga de progreso del usuario');
+
+    final usuario = session.usuario;
+    print('🔍 [XP DEBUG] Obteniendo usuario actual desde SessionManager');
+    print('   ├─ Usuario: ${usuario != null ? usuario.nombre : 'N/A'}');
+
+    if (usuario != null) {
+      print('👤 [XP DEBUG] Usuario autenticado (ANTES de crear UserProgress):');
+      print('   ├─ ID: ${usuario.id}');
+      print('   ├─ Nombre: ${usuario.nombre}');
+      print('   ├─ XP Total: ${usuario.xpTotal}');
+      print('   ├─ XP Hoy: ${usuario.xpHoy}');
+      print('   ├─ Racha días: ${usuario.rachaDias}');
+      print('   ├─ Lecciones completadas: ${usuario.leccionesCompletadas}');
+      print('   ├─ Escaneos exitosos: ${usuario.escaneosExitosos}');
+      print('   └─ Logros: ${usuario.logros}');
+
+      _userProgress = UserProgress(
+        xpTotal: usuario.xpTotal ?? 0,
+        xpHoy: usuario.xpHoy ?? 0,
+        rachaDias: usuario.rachaDias ?? 0,
+        leccionesCompletadas: usuario.leccionesCompletadas ?? 0,
+        escaneoExitosos: usuario.escaneosExitosos ?? 0,
+        logrosDesbloqueados: usuario.logros,
+      );
+
+      print('');
+      print('✅ [XP DEBUG] UserProgress creado correctamente:');
+      print('   ├─ XP Total: ${_userProgress.xpTotal}');
+      print('   ├─ Racha: ${_userProgress.rachaDias} días');
+      print('   ├─ Lecciones: ${_userProgress.leccionesCompletadas}');
+      print('   └─ Escaneos: ${_userProgress.escaneoExitosos}');
+    } else {
+      print('⚠️ [XP DEBUG] No hay usuario autenticado');
+      print('📦 [XP DEBUG] Usando valores por defecto (XP: 0)');
+
+      _userProgress = const UserProgress(
+        xpTotal: 0,
+        xpHoy: 0,
+        rachaDias: 0,
+        leccionesCompletadas: 0,
+        escaneoExitosos: 0,
+        logrosDesbloqueados: [],
+      );
+    }
+
+    print('═══════════════════════════════════════════');
   }
 
   Future<void> _fetchData() async {
     try {
-      // Sincronizar aplicación (Versión Alejandro)
+      final usuario = session.usuario;
+
+      if (usuario != null) {
+        // 🔥 RECARGAR DATOS DEL USUARIO Y PROGRESO DESDE SUPABASE
+        // El progreso está en la tabla 'estudiante', no en 'usuario'
+        try {
+          final supabase = Supabase.instance.client;
+
+          // Consultar la tabla estudiante con join a usuario
+          final data = await supabase
+              .from('estudiante')
+              .select('*, usuario:usuario_id(*)')
+              .eq('usuario_id', usuario.id)
+              .maybeSingle();
+
+          if (data != null) {
+            // EL progreso está en la tabla estudiante
+            final usuarioData = data['usuario'] as Map<String, dynamic>;
+            final mergedData = Map<String, dynamic>.from(usuarioData);
+
+            // Agregar campos de progreso desde la tabla estudiante
+            mergedData['xp_total'] = data['xp_total'] ?? 0;
+            mergedData['xp_hoy'] = data['xp_hoy'] ?? 0;
+            mergedData['racha_dias'] = data['racha_dias'] ?? 0;
+            mergedData['lecciones_completadas'] =
+                data['lecciones_completadas'] ?? 0;
+            mergedData['escaneos_exitosos'] = data['escaneos_exitosos'] ?? 0;
+            mergedData['logros'] = data['logros'] ?? [];
+
+            final usuarioActualizado = UsuarioModel.fromJson(mergedData);
+            session.loginEstudiante(usuarioActualizado);
+
+            _userProgress = UserProgress(
+              xpTotal: usuarioActualizado.xpTotal ?? 0,
+              xpHoy: usuarioActualizado.xpHoy ?? 0,
+              rachaDias: usuarioActualizado.rachaDias ?? 0,
+              leccionesCompletadas:
+                  usuarioActualizado.leccionesCompletadas ?? 0,
+              escaneoExitosos: usuarioActualizado.escaneosExitosos ?? 0,
+              logrosDesbloqueados: usuarioActualizado.logros,
+            );
+
+            print('✅ [HOME] Datos de usuario y progreso recargados');
+            print('   ├─ XP Total: ${_userProgress.xpTotal}');
+            print('   ├─ Racha: ${_userProgress.rachaDias}');
+          } else {
+            // Si no hay datos nuevos, usar los existentes del session
+            _userProgress = UserProgress(
+              xpTotal: usuario.xpTotal ?? 0,
+              xpHoy: usuario.xpHoy ?? 0,
+              rachaDias: usuario.rachaDias ?? 0,
+              leccionesCompletadas: usuario.leccionesCompletadas ?? 0,
+              escaneoExitosos: usuario.escaneosExitosos ?? 0,
+              logrosDesbloqueados: usuario.logros,
+            );
+            print(
+                '⚠️ [HOME] No se encontraron datos de estudiante, usando datos locales');
+          }
+        } catch (e) {
+          print('⚠️ [HOME] Error recargando desde Supabase: $e');
+          // En caso de error, usar datos existentes del session
+          _userProgress = UserProgress(
+            xpTotal: usuario.xpTotal ?? 0,
+            xpHoy: usuario.xpHoy ?? 0,
+            rachaDias: usuario.rachaDias ?? 0,
+            leccionesCompletadas: usuario.leccionesCompletadas ?? 0,
+            escaneoExitosos: usuario.escaneosExitosos ?? 0,
+            logrosDesbloqueados: usuario.logros,
+          );
+        }
+      }
+
       final syncService = SyncService(Supabase.instance.client);
       await syncService.syncApp();
 
-      // Cargar categorías (Versión Keiner)
       final repo = locator<CategoriaRepository>();
       final categorias = await repo.getCategorias();
-     categorias.sort((a, b) => a.orden.compareTo(b.orden));
+      categorias.sort((a, b) => a.orden.compareTo(b.orden));
+
       if (mounted) {
         setState(() {
           _categorias = categorias;
@@ -66,29 +187,25 @@ UserProgress get userProgress => session.progreso;
     }
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _loadingCategorias
-          ? const Center(child: CircularProgressIndicator(color: AppColors.terracota))
-          :IndexedStack(
-  index: _currentIndex,
-  children: [
-    _HomeContent(
-      userProgress: userProgress,
-      categorias: _categorias,
-    ),
-    LessonsScreen(
-      userProgress: userProgress,
-      initialCategorias: _categorias,
-    ),
-    const QrScannerScreen(),
-    RankingScreen(userProgress: userProgress),
-    ProfileScreen(userProgress: userProgress),
-  ],
-),
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.terracota))
+          : IndexedStack(
+              index: _currentIndex,
+              children: [
+                _HomeContent(
+                    userProgress: _userProgress, categorias: _categorias),
+                LessonsScreen(
+                    userProgress: _userProgress,
+                    initialCategorias: _categorias),
+                const QrScannerScreen(),
+                RankingScreen(userProgress: _userProgress),
+                ProfileScreen(userProgress: _userProgress),
+              ],
+            ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
@@ -110,8 +227,26 @@ class _HomeContent extends StatelessWidget {
     required this.categorias,
   });
 
+  String _obtenerSaludo() {
+    final hora = DateTime.now().hour;
+    if (hora < 12) return 'Buenos días';
+    if (hora < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Depuración de datos mostrados en UI
+    print('═══════════════════════════════════════════');
+    print('🎯 [XP DEBUG] Datos mostrados en HomeScreen:');
+    print('   ├─ XP Total: ${userProgress.xpTotal}');
+    print('   ├─ XP Hoy: ${userProgress.xpHoy}');
+    print('   ├─ Racha: ${userProgress.rachaDias} días');
+    print('   ├─ Lecciones completadas: ${userProgress.leccionesCompletadas}');
+    print('   ├─ Escaneos exitosos: ${userProgress.escaneoExitosos}');
+    print('   └─ Logros: ${userProgress.logrosDesbloqueados?.length ?? 0}');
+    print('═══════════════════════════════════════════');
+
     return SafeArea(
       child: CustomScrollView(
         slivers: [
@@ -184,6 +319,7 @@ class _HomeContent extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final usuario = SessionManager().usuario;
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
@@ -195,7 +331,7 @@ class _HomeContent extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'Eyuama',
+                    usuario?.nombre ?? 'Viajero',
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                           color: AppColors.terracota,
                           fontWeight: FontWeight.bold,
@@ -210,7 +346,7 @@ class _HomeContent extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Buenos días',
+                      _obtenerSaludo(),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppColors.terracota,
                             fontStyle: FontStyle.italic,

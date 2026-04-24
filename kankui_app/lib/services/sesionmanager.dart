@@ -36,4 +36,16 @@ class SessionManager {
     _usuarioActual = null;
     _progreso = const UserProgress();
   }
+  void syncFromUsuario(UsuarioModel usuario) {
+  _usuarioActual = usuario;
+
+  _progreso = UserProgress(
+    xpTotal: usuario.xpTotal,
+    xpHoy: usuario.xpHoy,
+    rachaDias: usuario.rachaDias,
+    leccionesCompletadas: usuario.leccionesCompletadas,
+    escaneoExitosos: usuario.escaneosExitosos,
+    logrosDesbloqueados: usuario.logros,
+  );
+}
 }

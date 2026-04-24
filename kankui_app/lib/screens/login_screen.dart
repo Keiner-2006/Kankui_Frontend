@@ -8,6 +8,9 @@ import '../models/usuario_model.dart';
 
 import '../services/auth_services.dart';
 import '../data/remote/supabase_service.dart';
+import '../data/local/user_repository.dart';
+import '../data/local/models_local.dart';
+
 // ─────────────────────────────────────────────
 // COLORES
 // ─────────────────────────────────────────────
@@ -261,87 +264,129 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
   }
 
   Future<void> _handleLogin() async {
-  final identificacion = _idController.text.trim();
-  final pin = _pinController.text.trim();
+    final identificacion = _idController.text.trim();
+    final pin = _pinController.text.trim();
 
-  if (identificacion.isEmpty || pin.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor completa todos los campos'),
-        backgroundColor: LoginColors.brown,
-      ),
-    );
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  try {
-    final supabase = Supabase.instance.client;
-
-    // 1. Buscar usuario por identificacion
-    final usuario = await supabase
-        .from('usuario')
-        .select('id, nombre, apellido')
-        .eq('identificacion', int.parse(identificacion))
-        .eq('rol', 'estudiante')
-        .maybeSingle();
-
-    if (usuario == null) {
-      throw Exception('No existe un estudiante con esa identificacion');
-    }
-
-    // 2. Buscar estudiante con ese usuario_id y verificar PIN
-    final estudiante = await supabase
-        .from('estudiante')
-        .select('*, usuario:usuario_id(*)')
-        .eq('usuario_id', usuario['id'])
-        .eq('pin', pin)
-        .maybeSingle();
-
-    if (!mounted) return;
-  
-    if (estudiante == null) {
+    if (identificacion.isEmpty || pin.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('PIN incorrecto'),
+          content: Text('Por favor completa todos los campos'),
           backgroundColor: LoginColors.brown,
         ),
       );
       return;
     }
-    // Crear modelo de usuario
-      final usuarioModel = UsuarioModel(
-        id: usuario['id'],
-        nombre: usuario['nombre'],
-        identificacion: int.parse(identificacion),
-        rol: 'estudiante',
-      );
+
+    setState(() => _isLoading = true);
+
+    try {
+      final supabase = Supabase.instance.client;
+
+      // 1. Buscar usuario por identificacion (traer todos los campos incluyendo progreso)
+      final usuario = await supabase
+          .from('usuario')
+          .select('*')
+          .eq('identificacion', int.parse(identificacion))
+          .eq('rol', 'estudiante')
+          .maybeSingle();
+
+      if (usuario == null) {
+        throw Exception('No existe un estudiante con esa identificacion');
+      }
+
+      // 2. Buscar estudiante con ese usuario_id y verificar PIN
+      final estudiante = await supabase
+          .from('estudiante')
+          .select('*, usuario:usuario_id(*)')
+          .eq('usuario_id', usuario['id'])
+          .eq('pin', pin)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      if (estudiante == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PIN incorrecto'),
+            backgroundColor: LoginColors.brown,
+          ),
+        );
+        return;
+      }
+
+      // 🔥 OBTENER DATOS DE PROGRESO DE LA TABLA ESTUDIANTE
+      // Los campos de progreso están en la tabla estudiante, no en usuario
+      final mergedData = Map<String, dynamic>.from(usuario);
+
+      // Extraer progreso de la tabla estudiante
+      mergedData['xp_total'] = estudiante['xp_total'] ?? 0;
+      mergedData['xp_hoy'] = estudiante['xp_hoy'] ?? 0;
+      mergedData['racha_dias'] = estudiante['racha_dias'] ?? 0;
+      mergedData['lecciones_completadas'] =
+          estudiante['lecciones_completadas'] ?? 0;
+      mergedData['escaneos_exitosos'] = estudiante['escaneos_exitosos'] ?? 0;
+      mergedData['logros'] = estudiante['logros'] ?? [];
+
+      // Crear modelo de usuario con todos los datos (incluyendo progreso)
+      final usuarioModel = UsuarioModel.fromJson(mergedData);
+
+      // 🔥 GUARDAR EN BASE LOCAL (SQLite)
+      final userRepo = UserRepository();
+
+      // Guardar usuario
+      await userRepo.saveCurrentUser(UsuarioLocal(
+        id: usuarioModel.id,
+        nombre: usuarioModel.nombre,
+        identificacion: usuarioModel.identificacion,
+        rol: usuarioModel.rol,
+        fechaRegistro: usuarioModel.fechaRegistro.toIso8601String(),
+        institucionId: usuarioModel.institucionId,
+      ));
+
+      // Guardar estudiante (con progreso)
+      await userRepo.saveEstudiante(EstudianteLocal(
+        id: estudiante['id'],
+        usuarioId: usuarioModel.id,
+        curso: estudiante['curso'],
+        grupo: estudiante['grupo'],
+        promedio: (estudiante['promedio'] ?? 0).toDouble(),
+        pin: estudiante['pin'],
+        maestroId: estudiante['maestro_id'],
+        xpTotal: estudiante['xp_total'] ?? 0,
+        xpHoy: estudiante['xp_hoy'] ?? 0,
+        rachaDias: estudiante['racha_dias'] ?? 0,
+        ultimaActividad: estudiante['ultima_actividad'],
+        leccionesCompletadasTotal: estudiante['lecciones_completadas'] ?? 0,
+        escaneosExitosos: estudiante['escaneos_exitosos'] ?? 0,
+        leccionesDesbloqueadas: List<String>.from(
+            estudiante['lecciones_desbloqueadas'] ?? ['leccion_1']),
+        logrosDesbloqueados: List<String>.from(estudiante['logros'] ?? []),
+      ));
 
       // 🔥 GUARDAR SESIÓN GLOBAL
-      print('Usuario autenticado: ${usuarioModel.nombre}, ID: ${usuarioModel.id}');
+      print(
+          'Usuario autenticado: ${usuarioModel.nombre}, ID: ${usuarioModel.id}');
+      print(
+          'Progreso: XP Total=${usuarioModel.xpTotal}, Racha=${usuarioModel.rachaDias}');
       SessionManager().loginEstudiante(usuarioModel);
 
-
-
-    // 3. Login exitoso - navegar al HomeScreen
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
-    );
-
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: ${e.toString()}'),
-        backgroundColor: LoginColors.brown,
-      ),
-    );
-  } finally {
-    if (mounted) setState(() => _isLoading = false);
+      // 3. Login exitoso - navegar al HomeScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -351,8 +396,7 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
         child: Column(
           children: [
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
@@ -443,7 +487,8 @@ class __StudentLoginFormState extends State<_StudentLoginForm> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 4,
-                          shadowColor: LoginColors.brownDark.withValues(alpha: 0.4),
+                          shadowColor:
+                              LoginColors.brownDark.withValues(alpha: 0.4),
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -517,77 +562,77 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
 
   // ─── LOGIN DOCENTE CON SUPABASE ───────────────
   Future<void> _handleLogin() async {
-     final email = _emailController.text.trim();
-  final password = _passwordController.text;
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
 
-  // Validaciones básicas
-  if (email.isEmpty || password.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Por favor completa todos los campos'),
-        backgroundColor: LoginColors.brown,
-      ),
-    );
-    return;
-  }
+    // Validaciones básicas
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todos los campos'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+      return;
+    }
 
-  if (!email.contains('@')) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Ingresa un correo válido'),
-        backgroundColor: LoginColors.brown,
-      ),
-    );
-    return;
-  }
+    if (!email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ingresa un correo válido'),
+          backgroundColor: LoginColors.brown,
+        ),
+      );
+      return;
+    }
 
-  setState(() => _isLoading = true);
-  
-  try {
-    // 🔐 SOLO LOGIN CON SUPABASE AUTH
-   final res = await AuthService().login(
+    setState(() => _isLoading = true);
+
+    try {
+      // 🔐 SOLO LOGIN CON SUPABASE AUTH
+      final res = await AuthService().login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    final user = res.user;
+      final user = res.user;
 
-    if (user == null) {
-      throw Exception('Credenciales inválidas');
-    }
+      if (user == null) {
+        throw Exception('Credenciales inválidas');
+      }
 
-    // Crear usuario en tabla usuarios
-    try {
-      await SupabaseService().insertarUsuario({
-        'id': user.id,
-        'nombre': user.email?.split('@')[0] ?? 'Docente',
-        'identificacion': 0,
-        'rol': 'maestro',
-        'fecha_registro': DateTime.now().toIso8601String(),
-        'institucion_id': null,
-      });
-    } catch (e) {}
+      // Crear usuario en tabla usuarios
+      try {
+        await SupabaseService().insertarUsuario({
+          'id': user.id,
+          'nombre': user.email?.split('@')[0] ?? 'Docente',
+          'identificacion': 0,
+          'rol': 'maestro',
+          'fecha_registro': DateTime.now().toIso8601String(),
+          'institucion_id': null,
+        });
+      } catch (e) {}
 
-    // Crear registro de maestro si no existe
-    await SupabaseService().insertarMaestro(userId: user.id);
+      // Crear registro de maestro si no existe
+      await SupabaseService().insertarMaestro(userId: user.id);
 
-    // �👇 CREAMOS UN PROFESOR BÁSICO (SIN BD)
-    final profesorAutenticado = Profesor(
-      nombre: 'Docente',
-      apellido: '',
-      correo: user.email ?? '',
-      institucion: 'I.E. Indígena Atánquez',
-    );
+      // �👇 CREAMOS UN PROFESOR BÁSICO (SIN BD)
+      final profesorAutenticado = Profesor(
+        nombre: 'Docente',
+        apellido: '',
+        correo: user.email ?? '',
+        institucion: 'I.E. Indígena Atánquez',
+      );
 
-    // 🚀 ENTRAR DIRECTO
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
-      ),
-    );
+      // 🚀 ENTRAR DIRECTO
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AdminPanelPage(profesor: profesorAutenticado),
+        ),
+      );
     } on AuthException catch (e) {
       // Error específico de Supabase Auth (credenciales inválidas, etc.)
       if (!mounted) return;
@@ -662,8 +707,7 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
           children: [
             // Botón volver
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
@@ -743,7 +787,8 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: LoginColors.brownDark.withValues(alpha: 0.08),
+                            color:
+                                LoginColors.brownDark.withValues(alpha: 0.08),
                             blurRadius: 20,
                             offset: const Offset(0, 6),
                           ),
@@ -785,14 +830,14 @@ class __TeacherLoginFormState extends State<_TeacherLoginForm> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: LoginColors.brownDark,
                                 foregroundColor: LoginColors.cream,
-                                disabledBackgroundColor:
-                                    LoginColors.brownDark.withValues(alpha: 0.6),
+                                disabledBackgroundColor: LoginColors.brownDark
+                                    .withValues(alpha: 0.6),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                                 elevation: 4,
-                                shadowColor:
-                                    LoginColors.brownDark.withValues(alpha: 0.4),
+                                shadowColor: LoginColors.brownDark
+                                    .withValues(alpha: 0.4),
                               ),
                               child: _isLoading
                                   ? const SizedBox(
@@ -969,9 +1014,7 @@ class _PasswordField extends StatelessWidget {
             suffixIcon: GestureDetector(
               onTap: onToggle,
               child: Icon(
-                obscure
-                    ? Icons.lock_outline_rounded
-                    : Icons.lock_open_outlined,
+                obscure ? Icons.lock_outline_rounded : Icons.lock_open_outlined,
                 color: LoginColors.textMuted,
                 size: 20,
               ),
