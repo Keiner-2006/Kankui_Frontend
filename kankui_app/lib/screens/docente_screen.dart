@@ -35,6 +35,7 @@ class Estudiante {
   final String nombre;
   final String apellido;
   final String pin;
+  final String identificacion; // Número de identificación (join con usuario)
   final String? avatarUrl;
 
   const Estudiante({
@@ -42,6 +43,7 @@ class Estudiante {
     required this.nombre,
     required this.apellido,
     required this.pin,
+    this.identificacion = '',
     this.avatarUrl,
   });
 
@@ -151,57 +153,57 @@ class _DocenteScreenState extends State<DocenteScreen> {
   /// );
   /// ```
   Future<void> _cargarEstudiantes() async {
-  print('🚀 Iniciando carga de estudiantes...');
-
-  setState(() {
-    _cargando = true;
-    _error = null;
-  });
-
-  try {
-    final repo = EstudianteRepository(Supabase.instance.client);
-
-    print('📡 Llamando a Supabase...');
-    final data = await repo.obtenerTodos();
-
-    print('📦 Datos crudos recibidos: $data');
-    print('📊 Cantidad: ${data.length}');
-
-    final datos = data.map((e) {
-      print('👤 Procesando estudiante: ${e.toJson()}');
-
-      return Estudiante(
-        id: e.id,
-        nombre: e.nombre ?? 'Sin nombre',
-        apellido: e.apellido ?? '',
-        pin: e.pin ?? '0000',
-      );
-    }).toList();
-
-    print('✅ Datos mapeados: $datos');
-
-    if (!mounted) return;
+    print('🚀 Iniciando carga de estudiantes...');
 
     setState(() {
-      _todosLosEstudiantes = datos;
-      _estudiantesFiltrados = datos;
-      _cargando = false;
+      _cargando = true;
+      _error = null;
     });
 
-    print('🎉 UI actualizada correctamente');
+    try {
+      final repo = EstudianteRepository(Supabase.instance.client);
 
-  } catch (e, stack) {
-    print('❌ ERROR COMPLETO: $e');
-    print('📍 STACKTRACE: $stack');
+      print('📡 Llamando a Supabase...');
+      final data = await repo.obtenerTodos();
 
-    if (!mounted) return;
+      print('📦 Datos crudos recibidos: $data');
+      print('📊 Cantidad: ${data.length}');
 
-    setState(() {
-      _error = 'Error cargando estudiantes: $e';
-      _cargando = false;
-    });
+      final datos = data.map((e) {
+        print('👤 Procesando estudiante: ${e.toJson()}');
+
+        return Estudiante(
+          id: e.id,
+          nombre: e.nombre ?? 'Sin nombre',
+          apellido: e.apellido ?? '',
+          pin: e.pin ?? '0000',
+          identificacion: e.identificacion,
+        );
+      }).toList();
+
+      print('✅ Datos mapeados: $datos');
+
+      if (!mounted) return;
+
+      setState(() {
+        _todosLosEstudiantes = datos;
+        _estudiantesFiltrados = datos;
+        _cargando = false;
+      });
+
+      print('🎉 UI actualizada correctamente');
+    } catch (e, stack) {
+      print('❌ ERROR COMPLETO: $e');
+      print('📍 STACKTRACE: $stack');
+
+      if (!mounted) return;
+
+      setState(() {
+        _error = 'Error cargando estudiantes: $e';
+        _cargando = false;
+      });
+    }
   }
-}
 
   // ── Agregar estudiante ────────────────────────────────────────
 
@@ -213,18 +215,14 @@ class _DocenteScreenState extends State<DocenteScreen> {
       'id': uuid.v4(),
       'nombre': '$nombre $apellido',
       'identificacion':
-          int.tryParse(pin) ?? 0, // usa pin como identificación temporal
-      'rol': 'estudiante',
-      'fecha_registro': DateTime.now().toIso8601String(),
-      'institucion_id': widget
-          .profesor.institucion, // asume que es el ID, ajustar si es nombre
+            pin, // usa pin como identificación temporal (ahora es String)
     };
 
     try {
       await locator<SupabaseService>().insertarUsuario(nuevoUsuario);
       // Recargar lista después de agregar
       await _cargarEstudiantes();
-      
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Estudiante agregado exitosamente')),
@@ -625,7 +623,7 @@ class _EstudianteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'ID: ${estudiante.id}',
+                    'ID: ${estudiante.identificacion}',
                     style: const TextStyle(
                       fontSize: 12,
                       color: _AppColors.textSecondary,

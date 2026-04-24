@@ -140,6 +140,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     final estudiante = Estudiante(
       id: const Uuid().v4(),
       usuarioId: usuarioEstudianteId,
+      identificacion: _idController.text.trim(),
       curso: _gradoSeleccionado,
       grupo: null,
       pin: '',
