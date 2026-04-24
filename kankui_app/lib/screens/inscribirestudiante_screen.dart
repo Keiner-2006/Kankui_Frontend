@@ -111,6 +111,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
   try {
     final supabase = Supabase.instance.client;
+    final docStr = _idController.text.trim();
 
     // 👨‍🏫 DOCENTE LOGUEADO
     final docente = supabase.auth.currentUser;
@@ -121,12 +122,54 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     print("👨‍🏫 Docente ID: ${docente.id}");
 
     // =========================
+    // ✅ VALIDACIONES DE IDENTIFICACIÓN
+    // =========================
+    
+    // ✅ 1. Solo números
+    final soloNumeros = RegExp(r'^[0-9]+$');
+    if (!soloNumeros.hasMatch(docStr)) {
+      throw Exception('La cédula solo debe contener números');
+    }
+
+    // ✅ 2. Longitud mínima
+    if (docStr.length < 6) {
+      throw Exception('Cédula demasiado corta (mínimo 6 dígitos)');
+    }
+
+    // ✅ 3. Longitud máxima
+    if (docStr.length > 11) {
+      throw Exception('Cédula excedió su longitud máxima');
+    }
+
+    // ✅ 4. Parseo seguro a int para validar límite
+    final docInt = int.tryParse(docStr);
+    if (docInt == null) {
+      throw Exception('La cédula no es válida');
+    }
+
+    // ✅ 5. Límite real de PostgreSQL (INTEGER)
+    if (docInt > 2147483647) {
+      throw Exception('Cédula excedió su longitud');
+    }
+
+    // ✅ 6. VALIDAR QUE NO EXISTA (UNICIDAD)
+    final existente = await supabase
+        .from('usuario')
+        .select('id')
+        .eq('identificacion', docInt)
+        .maybeSingle();
+
+    if (existente != null) {
+      throw Exception('Esta cédula ya está registrada');
+    }
+
+    // =========================
     // 1. CREAR USUARIO ESTUDIANTE
     // =========================
     final usuarioEstudiante = await supabase.from('usuario').insert({
       'id': const Uuid().v4(),
       'nombre': _nombreController.text.trim(),
-      'identificacion': int.parse(_idController.text.trim()),
+      'identificacion': docInt,
       'rol': 'estudiante',
     }).select().single();
 
@@ -140,7 +183,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
     final estudiante = Estudiante(
       id: const Uuid().v4(),
       usuarioId: usuarioEstudianteId,
-      identificacion: _idController.text.trim(),
+      identificacion: docStr,
       curso: _gradoSeleccionado,
       grupo: null,
       pin: '',
@@ -171,7 +214,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
 
     final resultado = NuevoEstudianteResult(
       nombreCompleto: _nombreController.text.trim(),
-      identificacion: _idController.text.trim(),
+      identificacion: docStr,
       grado: _gradoSeleccionado!,
       pin: pinGenerado,
     );
