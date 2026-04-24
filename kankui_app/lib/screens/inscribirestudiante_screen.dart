@@ -152,17 +152,6 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
       throw Exception('Cédula excedió su longitud');
     }
 
-    // ✅ 6. VALIDAR QUE NO EXISTA (UNICIDAD)
-    final existente = await supabase
-        .from('usuario')
-        .select('id')
-        .eq('identificacion', docInt)
-        .maybeSingle();
-
-    if (existente != null) {
-      throw Exception('Esta cédula ya está registrada');
-    }
-
     // =========================
     // 1. CREAR USUARIO ESTUDIANTE
     // =========================

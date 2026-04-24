@@ -64,6 +64,7 @@ class SyncService {
         pronunciacion: v.fonetica,
         traduccion: v.significado,
         audioUrl: v.audioPath,
+        imageUrl: v.imagePath,
         categoriaId: v.categoria,
       );
     }).toList();
@@ -88,14 +89,10 @@ class SyncService {
   Future<void> syncCategorias({bool force = false}) async {
     if (!force && !await _contentRepo.needsSync('categoria')) return;
 
-    final response = await _supabase
-        .from('categoria')
-        .select()
-        .order('orden');
+    final response = await _supabase.from('categoria').select().order('orden');
 
-    final categorias = (response as List)
-        .map((e) => CategoriaLocal.fromSupabase(e))
-        .toList();
+    final categorias =
+        (response as List).map((e) => CategoriaLocal.fromSupabase(e)).toList();
 
     await _contentRepo.saveCategorias(categorias);
     await _contentRepo.updateSyncMetadata('categoria');
@@ -106,9 +103,8 @@ class SyncService {
 
     final response = await _supabase.from('palabra').select();
 
-    final palabras = (response as List)
-        .map((e) => PalabraLocal.fromSupabase(e))
-        .toList();
+    final palabras =
+        (response as List).map((e) => PalabraLocal.fromSupabase(e)).toList();
 
     await _contentRepo.savePalabras(palabras);
     await _contentRepo.updateSyncMetadata('palabra');
@@ -117,14 +113,10 @@ class SyncService {
   Future<void> syncLecciones({bool force = false}) async {
     if (!force && !await _contentRepo.needsSync('leccion')) return;
 
-    final response = await _supabase
-        .from('leccion')
-        .select()
-        .order('orden');
+    final response = await _supabase.from('leccion').select().order('orden');
 
-    final lecciones = (response as List)
-        .map((e) => LeccionLocal.fromSupabase(e))
-        .toList();
+    final lecciones =
+        (response as List).map((e) => LeccionLocal.fromSupabase(e)).toList();
 
     await _contentRepo.saveLecciones(lecciones);
     await _contentRepo.updateSyncMetadata('leccion');
@@ -135,9 +127,8 @@ class SyncService {
 
     final response = await _supabase.from('pregunta').select();
 
-    final preguntas = (response as List)
-        .map((e) => PreguntaLocal.fromSupabase(e))
-        .toList();
+    final preguntas =
+        (response as List).map((e) => PreguntaLocal.fromSupabase(e)).toList();
 
     await _contentRepo.savePreguntas(preguntas);
     await _contentRepo.updateSyncMetadata('pregunta');
@@ -146,14 +137,10 @@ class SyncService {
   Future<void> syncRetos({bool force = false}) async {
     if (!force && !await _contentRepo.needsSync('reto')) return;
 
-    final response = await _supabase
-        .from('reto')
-        .select()
-        .order('orden');
+    final response = await _supabase.from('reto').select().order('orden');
 
-    final retos = (response as List)
-        .map((e) => RetoLocal.fromSupabase(e))
-        .toList();
+    final retos =
+        (response as List).map((e) => RetoLocal.fromSupabase(e)).toList();
 
     await _contentRepo.saveRetos(retos);
     await _contentRepo.updateSyncMetadata('reto');
