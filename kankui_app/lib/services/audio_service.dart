@@ -8,12 +8,7 @@ class AudioService {
   factory AudioService() => _instance;
   AudioService._internal();
 
-  // Configuración CRÍTICA: Usar PlayerMode.mediaPlayer para Android/iOS
-  // En versiones nuevas de audioplayers, el modo por defecto a veces falla.
-  final AudioPlayer _player = AudioPlayer(
-    playerId: 'kankui_audio_player',
-    mode: PlayerMode.mediaPlayer, // Fuerza el reproductor nativo
-  );
+  final AudioPlayer _player = AudioPlayer();
   
   String? _currentUrl;
 
@@ -28,11 +23,10 @@ class AudioService {
     try {
       // Si ya está reproduciendo este audio, lo pausa/reanuda
       if (_currentUrl == url) {
-        final state = _player.state;
-        if (state == PlayerState.playing) {
+        if (_player.state == PlayerState.playing) {
           await _player.pause();
           return true;
-        } else if (state == PlayerState.paused) {
+        } else if (_player.state == PlayerState.paused) {
           await _player.resume();
           return true;
         }
@@ -41,10 +35,7 @@ class AudioService {
       _currentUrl = url;
       debugPrint('[AudioService] Reproduciendo: $url');
 
-      // Release (libera) cualquier fuente anterior
       await _player.stop();
-      
-      // Reproduce la nueva URL - Usa UrlSource explícito
       await _player.play(UrlSource(url));
 
       return true;
