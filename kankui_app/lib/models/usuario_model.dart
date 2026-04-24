@@ -69,6 +69,12 @@
     String? rol,
     DateTime? fechaRegistro,
     String? institucionId,
+    int? xpTotal,
+    int? xpHoy,
+    int? rachaDias,
+    int? leccionesCompletadas,
+    int? escaneosExitosos,
+    List<String>? logros,
   }) {
     return UsuarioModel(
       id: id,
@@ -77,6 +83,12 @@
       rol: rol ?? this.rol,
       fechaRegistro: fechaRegistro ?? this.fechaRegistro,
       institucionId: institucionId ?? this.institucionId,
+      xpTotal: xpTotal ?? this.xpTotal,
+      xpHoy: xpHoy ?? this.xpHoy,
+      rachaDias: rachaDias ?? this.rachaDias,
+      leccionesCompletadas: leccionesCompletadas ?? this.leccionesCompletadas,
+      escaneosExitosos: escaneosExitosos ?? this.escaneosExitosos,
+      logros: logros ?? this.logros,
     );
   }
 

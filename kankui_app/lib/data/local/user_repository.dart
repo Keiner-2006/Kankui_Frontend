@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import 'database_service.dart';
 import 'models_local.dart';
 
@@ -96,6 +97,31 @@ class UserRepository {
       where: 'id = ?',
       whereArgs: [estudiante.id],
     );
+  }
+
+  // ============================================
+  // GUARDAR RESULTADO QUIZ
+  // ============================================
+
+  /// Guardar resultado del quiz
+  Future<ResultadoQuizLocal?> guardarResultadoQuiz(String retoId, Map<String, dynamic> resultado) async {
+    final db = await _db.database;
+    final id = const Uuid().v4();
+    final resultadoQuiz = ResultadoQuizLocal(
+      id: id,
+      usuarioId: (await getCurrentUser())?.id ?? '',
+      retoId: retoId,
+      respuestas: List<int>.from(resultado['respuestas'] ?? []),
+      puntaje: resultado['puntos'] ?? 0,
+      fecha: DateTime.now().toIso8601String(),
+      synced: false,
+    );
+    await db.insert(
+      'resultado_quiz',
+      resultadoQuiz.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return resultadoQuiz;
   }
 
   // ============================================
