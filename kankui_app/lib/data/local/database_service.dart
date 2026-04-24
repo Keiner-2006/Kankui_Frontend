@@ -37,7 +37,6 @@ Future<Database> _initDatabase() async {
     onUpgrade: _onUpgrade,
   );
 
-  
   await db.execute('PRAGMA foreign_keys = ON');
 
   return db;
@@ -145,8 +144,7 @@ Future<Database> _initDatabase() async {
         escaneos_exitosos INTEGER DEFAULT 0,
         lecciones_desbloqueadas TEXT DEFAULT '["leccion_1"]',
         logros_desbloqueados TEXT DEFAULT '[]',
-        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
-        FOREIGN KEY (maestro_id) REFERENCES maestro(id)
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id)
       )
     ''');
 
