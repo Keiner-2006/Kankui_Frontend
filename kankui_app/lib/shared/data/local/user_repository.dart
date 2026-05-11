@@ -242,6 +242,31 @@ class UserRepository {
   // GAMIFICACION - ESCANEOS QR
   // ============================================
 
+  // ============================================
+  // RESULTADOS DE QUIZ
+  // ============================================
+
+  /// Guardar resultado de un quiz
+  Future<String> guardarResultadoQuiz(String retoId, Map<String, dynamic> resultado) async {
+    final db = await _db.database;
+    final usuario = await getCurrentUser();
+    final id = '${DateTime.now().millisecondsSinceEpoch}_$retoId';
+    final resultadoLocal = ResultadoQuizLocal(
+      id: id,
+      usuarioId: usuario?.id ?? 'unknown',
+      retoId: retoId,
+      respuestas: [],
+      puntaje: resultado['puntos'] ?? 0,
+      fecha: DateTime.now().toIso8601String(),
+    );
+    await db.insert(
+      'resultado_quiz',
+      resultadoLocal.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+    return id;
+  }
+
   /// Incrementar contador de escaneos exitosos
   Future<EstudianteLocal?> incrementarEscaneos() async {
     final estudiante = await getCurrentEstudiante();
