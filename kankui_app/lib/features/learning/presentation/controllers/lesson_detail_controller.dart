@@ -4,9 +4,13 @@ import 'package:kankui_app/features/learning/domain/models/categoria_model.dart'
 import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
+import 'package:kankui_app/shared/data/local/user_repository.dart';
+import 'package:kankui_app/shared/data/local/progress_repository.dart';
 
 class LessonDetailController extends GetxController {
   final AudioService _audioService = Get.find();
+  final UserRepository _userRepo = Get.find();
+  final ProgressRepository _progressRepo = Get.find();
 
   final currentIndex = 0.obs;
   final showSignificado = false.obs;
@@ -36,6 +40,29 @@ class LessonDetailController extends GetxController {
       showSignificado.value = false;
     } else {
       showCompletionDialog();
+    }
+  }
+
+  Future<void> _guardarProgreso() async {
+    try {
+      final usuario = await _userRepo.getCurrentUser();
+      if (usuario == null) return;
+
+      await _userRepo.addXP(vocablos.length * 10);
+      await _userRepo.updateRacha();
+      await _userRepo.completarLeccion(categoria.id);
+
+      final estudiante = await _userRepo.getCurrentEstudiante();
+      final totalCompletadas = estudiante?.leccionesCompletadasTotal ?? 1;
+
+      await _progressRepo.updateProgresoCategoria(
+        usuarioId: usuario.id,
+        categoriaId: categoria.id,
+        leccionesCompletadas: totalCompletadas,
+        totalLecciones: 1,
+      );
+    } catch (e) {
+      debugPrint('Error guardando progreso de lección: $e');
     }
   }
 
@@ -119,8 +146,9 @@ class LessonDetailController extends GetxController {
             ),
             const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 Get.back();
+                await _guardarProgreso();
                 _mostrarOpcionesPostLeccion();
               },
               style: ElevatedButton.styleFrom(

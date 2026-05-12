@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
 import 'package:kankui_app/features/quiz/domain/models/pregunta_quiz_model.dart';
@@ -440,13 +441,33 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
 
     mostroResumen.then((value) {
       if (value == true && mounted) {
-        Navigator.pop(context, true);
+        Get.until((route) =>
+          route.settings.name == '/lessons' ||
+          route.settings.name == '/home' ||
+          route.settings.name == '/'
+        );
       }
     });
   }
 
   Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
-    debugPrint('Progreso guardado: $resultado');
+    try {
+      final userRepo = UserRepository();
+
+      await userRepo.guardarResultadoQuiz(widget.reto.id, resultado);
+
+      final correctas = resultado['correctas'] as int;
+      final xpGanado = correctas * 10;
+
+      await userRepo.addXP(xpGanado);
+      await userRepo.updateRacha();
+
+      if (widget.reto.leccionId != null) {
+        await userRepo.completarLeccion(widget.reto.leccionId!);
+      }
+    } catch (e) {
+      debugPrint('Error guardando progreso del quiz: $e');
+    }
   }
 
   void _mostrarConfirmacionSalida() {
