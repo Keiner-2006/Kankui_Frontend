@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
 import 'package:kankui_app/features/quiz/domain/models/pregunta_quiz_model.dart';
 import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart';
+import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
 
@@ -132,6 +134,19 @@ class QuizQuestionController extends GetxController
     }
 
     await _userRepo.updateRacha();
+
+    final usuario = await _userRepo.getCurrentUser();
+    if (usuario != null) {
+      try {
+        final repo = EstudianteRepository(Supabase.instance.client);
+        await repo.actualizarGamificacion(
+          usuarioId: usuario.id,
+          xpSumar: xpGanado,
+          incrementarRacha: true,
+          leccionesSumar: reto.leccionId != null ? 1 : 0,
+        );
+      } catch (_) {}
+    }
   }
 
   void confirmExit() {

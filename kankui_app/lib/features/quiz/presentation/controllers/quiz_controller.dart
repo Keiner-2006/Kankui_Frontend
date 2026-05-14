@@ -7,11 +7,24 @@ import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart'
 class QuizController extends GetxController {
   final QuizRepository _quizRepository = Get.find();
 
-  late CategoriaModel? categoria;
-  late String? leccionId;
-  late int? cantidadPreguntas;
-  late bool desdeLeccion;
-  late List<Vocablo>? vocablosLeccion;
+  CategoriaModel? categoria;
+  String? leccionId;
+  int? cantidadPreguntas;
+  bool desdeLeccion = false;
+  List<Vocablo>? vocablosLeccion;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments as Map<String, dynamic>?;
+    if (args != null) {
+      categoria = args['categoria'] as CategoriaModel?;
+      leccionId = args['leccionId'] as String?;
+      cantidadPreguntas = args['cantidadPreguntas'] as int?;
+      desdeLeccion = args['desdeLeccion'] as bool? ?? false;
+      vocablosLeccion = args['vocablosLeccion'] as List<Vocablo>?;
+    }
+  }
 
   void initialize({
     CategoriaModel? categoria,

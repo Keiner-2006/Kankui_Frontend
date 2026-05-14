@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
 import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
 import 'package:kankui_app/shared/data/local/progress_repository.dart';
+import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
 
 class LessonDetailController extends GetxController {
   final AudioService _audioService = Get.find();
@@ -48,7 +50,9 @@ class LessonDetailController extends GetxController {
       final usuario = await _userRepo.getCurrentUser();
       if (usuario == null) return;
 
-      await _userRepo.addXP(vocablos.length * 10);
+      final xpGanado = vocablos.length * 10;
+
+      await _userRepo.addXP(xpGanado);
       await _userRepo.updateRacha();
       await _userRepo.completarLeccion(categoria.id);
 
@@ -61,6 +65,16 @@ class LessonDetailController extends GetxController {
         leccionesCompletadas: totalCompletadas,
         totalLecciones: 1,
       );
+
+      try {
+        final repo = EstudianteRepository(Supabase.instance.client);
+        await repo.actualizarGamificacion(
+          usuarioId: usuario.id,
+          xpSumar: xpGanado,
+          incrementarRacha: true,
+          leccionesSumar: 1,
+        );
+      } catch (_) {}
     } catch (e) {
       debugPrint('Error guardando progreso de lección: $e');
     }
@@ -111,7 +125,7 @@ class LessonDetailController extends GetxController {
             ),
             const SizedBox(height: 16),
             Text(
-              'Has completado la lección de ${'\${categoria.nombre}'}',
+              'Has completado la lección de ${categoria.nombre}',
               style: Get.textTheme.bodyLarge?.copyWith(color: AppColors.textoMedio),
               textAlign: TextAlign.center,
             ),
@@ -135,7 +149,7 @@ class LessonDetailController extends GetxController {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '+${'\${vocablos.length * 10}'} XP',
+                    '+${vocablos.length * 10} XP',
                     style: Get.textTheme.headlineMedium?.copyWith(
                       color: AppColors.doradoSol,
                       fontWeight: FontWeight.bold,

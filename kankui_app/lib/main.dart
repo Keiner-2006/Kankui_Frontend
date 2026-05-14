@@ -17,14 +17,16 @@ import 'package:kankui_app/shared/services/service_locator.dart';
 import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'shared/ui/bindings/app_bindings.dart';
 import 'shared/core/constants/app_constants.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: '.env');
+
   await Supabase.initialize(
     url: ApiConstants.supabaseUrl,
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnaG5ieXVhbnh4aHRwbGxhem1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTc5MzUsImV4cCI6MjA5MTA5MzkzNX0.fboYT3pGgMKXDmaKNvfYr9FJ94cxnaoEiKRwz_h6cTY',
+    anonKey: ApiConstants.supabaseAnonKey,
   );
 
   setupLocator();

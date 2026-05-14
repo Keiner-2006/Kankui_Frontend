@@ -1,3 +1,5 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 class AppConstants {
   static const String appName = 'Kankui';
   static const String appVersion = '1.0.0';
@@ -7,5 +9,9 @@ class AppConstants {
 }
 
 class ApiConstants {
-  static const String supabaseUrl = 'https://jghnbyuanxxhtpllazmq.supabase.co';
+  static String get supabaseUrl =>
+      dotenv.env['SUPABASE_URL'] ?? 'https://jghnbyuanxxhtpllazmq.supabase.co';
+
+  static String get supabaseAnonKey =>
+      dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 }

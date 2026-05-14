@@ -77,7 +77,7 @@ class LoginController extends GetxController {
       mergedData['xp_hoy'] = estudiante['xp_hoy'] ?? 0;
       mergedData['racha_dias'] = estudiante['racha_dias'] ?? 0;
       mergedData['lecciones_completadas'] =
-          estudiante['lecciones_completadas'] ?? 0;
+          estudiante['lecciones_completadas_total'] ?? 0;
       mergedData['escaneos_exitosos'] = estudiante['escaneos_exitosos'] ?? 0;
       mergedData['logros'] = estudiante['logros'] ?? [];
 
@@ -104,7 +104,7 @@ class LoginController extends GetxController {
         xpHoy: estudiante['xp_hoy'] ?? 0,
         rachaDias: estudiante['racha_dias'] ?? 0,
         ultimaActividad: estudiante['ultima_actividad'],
-        leccionesCompletadasTotal: estudiante['lecciones_completadas'] ?? 0,
+        leccionesCompletadasTotal: estudiante['lecciones_completadas_total'] ?? 0,
         escaneosExitosos: estudiante['escaneos_exitosos'] ?? 0,
         leccionesDesbloqueadas:
             List<String>.from(estudiante['lecciones_desbloqueadas'] ?? ['leccion_1']),

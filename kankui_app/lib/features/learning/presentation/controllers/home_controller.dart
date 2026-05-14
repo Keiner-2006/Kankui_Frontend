@@ -59,7 +59,7 @@ class HomeController extends GetxController {
             mergedData['xp_hoy'] = data['xp_hoy'] ?? 0;
             mergedData['racha_dias'] = data['racha_dias'] ?? 0;
             mergedData['lecciones_completadas'] =
-                data['lecciones_completadas'] ?? 0;
+                data['lecciones_completadas_total'] ?? 0;
             mergedData['escaneos_exitosos'] = data['escaneos_exitosos'] ?? 0;
             mergedData['logros'] = data['logros'] ?? [];
 

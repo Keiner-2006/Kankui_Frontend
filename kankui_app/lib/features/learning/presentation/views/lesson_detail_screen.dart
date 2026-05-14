@@ -175,35 +175,60 @@ class LessonDetailScreen extends GetView<LessonDetailController> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Row(
-                            children: [
-                              if (currentIndex > 0)
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: controller.goToPrevious,
-                                    icon: const Icon(Icons.arrow_back_rounded),
-                                    label: const Text('Anterior'),
-                                  ),
-                                ),
-                              if (currentIndex > 0) const SizedBox(width: 12),
-                              Expanded(
-                                flex: 2,
-                                child: ElevatedButton.icon(
+                          child: currentIndex > 0
+                              ? Row(
+                                  children: [
+                                    OutlinedButton(
+                                      onPressed: controller.goToPrevious,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.terracota,
+                                        side: const BorderSide(color: AppColors.terracota),
+                                        shape: const CircleBorder(),
+                                        padding: const EdgeInsets.all(12),
+                                      ),
+                                      child: const Icon(Icons.arrow_back_rounded),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: controller.goToNext,
+                                        icon: Icon(
+                                          currentIndex < vocablos.length - 1
+                                              ? Icons.arrow_forward_rounded
+                                              : Icons.check_rounded,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          currentIndex < vocablos.length - 1
+                                              ? 'Siguiente'
+                                              : 'Completar',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.terracota,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(28),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ElevatedButton.icon(
                                   onPressed: controller.goToNext,
-                                  icon: Icon(
-                                    currentIndex < vocablos.length - 1
-                                        ? Icons.arrow_forward_rounded
-                                        : Icons.check_rounded,
-                                  ),
-                                  label: Text(
-                                    currentIndex < vocablos.length - 1
-                                        ? 'Siguiente'
-                                        : 'Completar',
+                                  icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                                  label: const Text('Siguiente', style: TextStyle(fontSize: 14)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.terracota,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(28),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(horizontal: 8),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
                         ),
                       ],
                     ),

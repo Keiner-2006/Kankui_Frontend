@@ -32,7 +32,7 @@ class DatabaseService {
 
     final db = await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -161,8 +161,7 @@ class DatabaseService {
         total_lecciones INTEGER DEFAULT 0,
         ultima_actividad TEXT,
         synced INTEGER DEFAULT 0,
-        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
-        FOREIGN KEY (categoria_id) REFERENCES categoria(id)
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id)
       )
     ''');
 
@@ -227,6 +226,31 @@ class DatabaseService {
     if (oldVersion < 2) {
       // Version 2: Añadir columna image_url a la tabla palabra
       await db.execute('ALTER TABLE palabra ADD COLUMN image_url TEXT');
+    }
+    if (oldVersion < 3) {
+      // Version 3: Remover FK de categoria_id en progreso_categoria
+      await db.execute('PRAGMA foreign_keys = OFF');
+      await db.execute('''
+        CREATE TABLE progreso_categoria_temp (
+          id TEXT PRIMARY KEY,
+          usuario_id TEXT NOT NULL,
+          categoria_id TEXT NOT NULL,
+          lecciones_completadas INTEGER DEFAULT 0,
+          total_lecciones INTEGER DEFAULT 0,
+          ultima_actividad TEXT,
+          synced INTEGER DEFAULT 0,
+          FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO progreso_categoria_temp
+        SELECT id, usuario_id, categoria_id, lecciones_completadas,
+               total_lecciones, ultima_actividad, synced
+        FROM progreso_categoria
+      ''');
+      await db.execute('DROP TABLE progreso_categoria');
+      await db.execute('ALTER TABLE progreso_categoria_temp RENAME TO progreso_categoria');
+      await db.execute('PRAGMA foreign_keys = ON');
     }
   }
 

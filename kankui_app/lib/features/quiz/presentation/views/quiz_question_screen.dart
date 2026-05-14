@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
 import 'package:kankui_app/features/quiz/domain/models/pregunta_quiz_model.dart';
 import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart';
+import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/lessons_controller.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
 import 'package:kankui_app/shared/data/local/models_local.dart';
 import 'package:kankui_app/shared/ui/widgets/opcion_respuesta_widget.dart';
@@ -391,7 +395,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
     });
   }
 
-  void _siguientePregunta() {
+  Future<void> _siguientePregunta() async {
     if (_preguntaIndex < _preguntas.length - 1) {
       setState(() {
         _preguntaIndex++;
@@ -402,11 +406,11 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
         _timerController.forward();
       });
     } else {
-      _finalizarQuiz();
+      await _finalizarQuiz();
     }
   }
 
-  void _finalizarQuiz() {
+  Future<void> _finalizarQuiz() async {
     _timerController.stop();
 
     final respuestasValidas = _respuestasUsuario.where((r) => r != null).length;
@@ -423,11 +427,11 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
       'porcentaje': (correctas / _preguntas.length * 100).round(),
     };
 
-    _guardarProgreso(resultado);
+    await _guardarProgreso(resultado);
 
     if (!mounted) return;
 
-    final mostroResumen = Navigator.push<bool>(
+    final mostroResumen = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => QuizResumenScreen(
@@ -439,15 +443,15 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
       ),
     );
 
-    mostroResumen.then((value) {
-      if (value == true && mounted) {
-        Get.until((route) =>
-          route.settings.name == '/lessons' ||
-          route.settings.name == '/home' ||
-          route.settings.name == '/'
-        );
-      }
-    });
+    if (mostroResumen == true && mounted) {
+      Get.until((route) =>
+        route.settings.name == '/lessons' ||
+        route.settings.name == '/home' ||
+        route.settings.name == '/'
+      );
+      try { Get.find<HomeController>().fetchData(); } catch (_) {}
+      try { Get.find<LessonsController>().fetchCategorias(); } catch (_) {}
+    }
   }
 
   Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
@@ -464,6 +468,17 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
 
       if (widget.reto.leccionId != null) {
         await userRepo.completarLeccion(widget.reto.leccionId!);
+      }
+
+      final usuario = await userRepo.getCurrentUser();
+      if (usuario != null) {
+        final repo = EstudianteRepository(Supabase.instance.client);
+        await repo.actualizarGamificacion(
+          usuarioId: usuario.id,
+          xpSumar: xpGanado,
+          incrementarRacha: true,
+          leccionesSumar: widget.reto.leccionId != null ? 1 : 0,
+        );
       }
     } catch (e) {
       debugPrint('Error guardando progreso del quiz: $e');

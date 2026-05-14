@@ -200,12 +200,13 @@ class EstudianteRepository {
     required String usuarioId,
     required int xpSumar,
     bool incrementarRacha = false,
+    int leccionesSumar = 0,
   }) async {
     try {
       final modeloActual = await obtenerPerfilEstudiante(usuarioId);
       if (modeloActual == null) return false;
 
-      final mapToUpdate = {
+      final mapToUpdate = <String, dynamic>{
         'xp_total': modeloActual.xpTotal + xpSumar,
         'xp_hoy': modeloActual.xpHoy + xpSumar,
         'ultima_actividad': DateTime.now().toIso8601String(),
@@ -213,6 +214,11 @@ class EstudianteRepository {
 
       if (incrementarRacha) {
         mapToUpdate['racha_dias'] = modeloActual.rachaDias + 1;
+      }
+
+      if (leccionesSumar > 0) {
+        mapToUpdate['lecciones_completadas_total'] =
+            modeloActual.leccionesCompletadasTotal + leccionesSumar;
       }
 
       await supabase
