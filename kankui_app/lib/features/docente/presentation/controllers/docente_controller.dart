@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
-import 'package:kankui_app/shared/services/docenteservices.dart';
-
+import 'package:kankui_app/features/docente/domain/models/estudiantes_model.dart';
 class Profesor {
   final String nombre;
   final String apellido;
@@ -22,13 +21,13 @@ class Profesor {
 
 class DocenteController extends GetxController {
   final EstudianteRepository _repo = EstudianteRepository(Supabase.instance.client);
-  final DocenteService _docenteService = Get.find();
 
-  final todosLosEstudiantes = <Map<String, dynamic>>[].obs;
-  final estudiantesFiltrados = <Map<String, dynamic>>[].obs;
+  final todosLosEstudiantes = <EstudianteModel>[].obs;
+  final estudiantesFiltrados = <EstudianteModel>[].obs;
   final cargando = true.obs;
   final error = Rxn<String>();
   final currentTab = 0.obs;
+  final maestroId = Rxn<String>();
 
   final searchController = TextEditingController();
   late Profesor profesor;
@@ -49,6 +48,22 @@ class DocenteController extends GetxController {
     }
     searchController.addListener(filter);
     cargarEstudiantes();
+    _cargarMaestroId();
+  }
+
+  Future<void> _cargarMaestroId() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    try {
+      final data = await Supabase.instance.client
+          .from('maestro')
+          .select('id')
+          .eq('usuario_id', user.id)
+          .maybeSingle();
+      if (data != null) {
+        maestroId.value = data['id'];
+      }
+    } catch (_) {}
   }
 
   @override
@@ -63,9 +78,8 @@ class DocenteController extends GetxController {
 
     try {
       final data = await _repo.obtenerTodos();
-      final datos = data.map((e) => e.toJson()).toList();
-      todosLosEstudiantes.assignAll(datos);
-      estudiantesFiltrados.assignAll(datos);
+      todosLosEstudiantes.assignAll(data);
+      estudiantesFiltrados.assignAll(data);
     } catch (e) {
       error.value = 'Error cargando estudiantes: $e';
     } finally {
@@ -77,8 +91,8 @@ class DocenteController extends GetxController {
     final query = searchController.text.toLowerCase().trim();
     estudiantesFiltrados.assignAll(
       todosLosEstudiantes.where((e) {
-        final nombre = (e['nombre'] ?? '').toString().toLowerCase();
-        final id = (e['id'] ?? '').toString().toLowerCase();
+        final nombre = '${e.nombre ?? ''} ${e.apellido ?? ''}'.toLowerCase();
+        final id = e.id.toLowerCase();
         return nombre.contains(query) || id.contains(query);
       }).toList(),
     );
@@ -87,4 +101,9 @@ class DocenteController extends GetxController {
   void changeTab(int index) {
     currentTab.value = index;
   }
+
+  String nombreCompleto(EstudianteModel e) =>
+      '${e.nombre ?? ''} ${e.apellido ?? ''}'.trim();
+
+  String pinFormateado(EstudianteModel e) => 'K-${e.pin ?? ''}';
 }

@@ -17,14 +17,8 @@ class Estudiante {
   final List<String> leccionesDesbloqueadas;
   final List<String> logrosDesbloqueados;
 
-  // Campos adicionales de Keiner
   final String? usuarioId;
-  final int leccionesCompletadas;
-  final int escaneoExitosos;
   final int vocablosAprendidos;
-
-  // Identificación del usuario (join con tabla usuario)
-  //final String identificacion;
 
   Estudiante({
     required this.id,
@@ -44,12 +38,8 @@ class Estudiante {
     this.escaneosExitosos = 0,
     this.leccionesDesbloqueadas = const ['leccion_1'],
     this.logrosDesbloqueados = const [],
-    // Inicialización de campos de Keiner
     this.usuarioId,
-    this.leccionesCompletadas = 0,
-    this.escaneoExitosos = 0,
     this.vocablosAprendidos = 0,
-    //this.identificacion = '',
   });
 
   // Factory unificado
@@ -76,16 +66,12 @@ class Estudiante {
           ? DateTime.tryParse(json['ultima_actividad'])
           : null,
       leccionesCompletadasTotal: json['lecciones_completadas_total'] ?? 0,
-      leccionesCompletadas: json['lecciones_completadas_total'] ?? 0,
       escaneosExitosos: json['escaneos_exitosos'] ?? 0,
-      escaneoExitosos: json['escaneos_exitosos'] ?? 0,
       vocablosAprendidos: json['vocablosAprendidos'] ?? 0,
       leccionesDesbloqueadas:
           List<String>.from(json['lecciones_desbloqueadas'] ?? ['leccion_1']),
       logrosDesbloqueados:
           List<String>.from(json['logros_desbloqueados'] ?? []),
-      // Extraer identificación del join con usuario
-      
     );
   }
 
@@ -94,7 +80,6 @@ class Estudiante {
     return {
       'id': id,
       'usuario_id': usuarioId,
-      //'identificacion': identificacion,
       'curso': curso,
       'grupo': grupo,
       'promedio': promedio,

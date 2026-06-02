@@ -1,73 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
+import 'package:get/get.dart';
+import 'package:kankui_app/features/docente/presentation/controllers/docente_controller.dart';
+import 'package:kankui_app/features/docente/domain/models/estudiantes_model.dart';
 import 'package:kankui_app/features/docente/presentation/views/inscribirestudiante_screen.dart';
-import 'package:kankui_app/shared/services/service_locator.dart';
-import 'package:kankui_app/shared/data/remote/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/recursos_qr_screen.dart';
-
-// ============================================================
-// MODELOS DE DATOS
-// ============================================================
-
-/// Modelo del Profesor autenticado.
-/// El nombre de la institución se obtiene desde este objeto.
-class Profesor {
-  final String nombre;
-  final String apellido;
-  final String correo;
-  final String institucion; // <-- nombre de la IE que aparece en el header
-  final String? avatarUrl;
-
-  const Profesor({
-    required this.nombre,
-    required this.apellido,
-    required this.correo,
-    required this.institucion,
-    this.avatarUrl,
-  });
-}
-
-/// Modelo de Estudiante registrado.
-class Estudiante {
-  final String id;
-  final String nombre;
-  final String apellido;
-  final String pin;
-  final String identificacion; // Número de identificación (join con usuario)
-  final String? avatarUrl;
-
-  const Estudiante({
-    required this.id,
-    required this.nombre,
-    required this.apellido,
-    required this.pin,
-    this.identificacion = '',
-    this.avatarUrl,
-  });
-
-  String get nombreCompleto => '$nombre $apellido';
-  String get pinFormateado => 'K-$pin';
-}
-
-// ============================================================
-// DATOS DE EJEMPLO (reemplazar con llamadas a API/BLoC/Provider)
-// ============================================================
-
-const _profesorEjemplo = Profesor(
-  nombre: 'Laura',
-  apellido: 'Martínez',
-  correo: 'laura@iedemo.edu.co',
-  institucion: 'I.E. Indígena Atánquez',
-);
-
-// Los datos mock se encuentran ahora dentro de _cargarEstudiantes()
-// en el State de AdminPanelPage. No se necesita lista global.
-
-// ============================================================
-// PALETA DE COLORES
-// ============================================================
+import 'package:kankui_app/features/docente/presentation/views/gestion_grupos_screen.dart';
 
 class _AppColors {
   static const headerBrown = Color(0xFF5C2E00);
@@ -84,235 +21,94 @@ class _AppColors {
   static const divider = Color(0xFFF0E8DF);
 }
 
-// ============================================================
-// PANTALLA PRINCIPAL: Panel de Administración
-// ============================================================
-
 class DocenteScreen extends StatefulWidget {
-  final Profesor profesor;
-  final VoidCallback? onAgregarEstudiante;
-  final VoidCallback? onExportar;
   final String? maestroId;
 
-  const DocenteScreen({
-    super.key,
-    required this.profesor,
-    this.onAgregarEstudiante,
-    this.onExportar,
-    this.maestroId,
-  });
+  const DocenteScreen({super.key, this.maestroId});
 
   @override
   State<DocenteScreen> createState() => _DocenteScreenState();
 }
 
 class _DocenteScreenState extends State<DocenteScreen> {
-  int _currentIndex = 0;
-  
-  /// Lista maestra cargada desde la "API" (o mock).
-  List<Estudiante> _todosLosEstudiantes = [];
-
-  /// Lista derivada que se muestra según el filtro de búsqueda.
-  List<Estudiante> _estudiantesFiltrados = [];
-
-  /// Indica si la carga inicial está en progreso.
-  bool _cargando = true;
-
-  /// Mensaje de error en caso de fallo de red/API (null = sin error).
-  String? _error;
-
-  final TextEditingController _searchController = TextEditingController();
-
-  // ── Ciclo de vida ────────────────────────────────────────────
+  late final DocenteController controller;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_filtrar);
-    _cargarEstudiantes(); // carga al entrar a la pantalla
+    controller = Get.find<DocenteController>();
   }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // ── Carga de datos ───────────────────────────────────────────
-
-  /// Carga la lista de estudiantes asociados al profesor.
-  ///
-  /// AHORA usa datos mock con un retardo simulado.
-  ///
-  /// PARA CONECTAR A UNA API REAL, reemplaza el bloque marcado con
-  /// `// [API REAL]` por tu llamada HTTP/repositorio, por ejemplo:
-  ///
-  /// ```dart
-  /// final response = await estudianteRepository.fetchPorProfesor(
-  ///   profesorId: widget.profesor.id,
-  /// );
-  /// ```
-  Future<void> _cargarEstudiantes() async {
-    print('🚀 Iniciando carga de estudiantes...');
-
-    setState(() {
-      _cargando = true;
-      _error = null;
-    });
-
-    try {
-      final repo = EstudianteRepository(Supabase.instance.client);
-
-      print('📡 Llamando a Supabase...');
-      final data = await repo.obtenerTodos();
-
-      print('📦 Datos crudos recibidos: $data');
-      print('📊 Cantidad: ${data.length}');
-
-      final datos = data.map((e) {
-        print('👤 Procesando estudiante: ${e.toJson()}');
-
-        return Estudiante(
-          id: e.id,
-          nombre: e.nombre ?? 'Sin nombre',
-          apellido: e.apellido ?? '',
-          pin: e.pin ?? '0000',
-          identificacion: e.identificacion,
-        );
-      }).toList();
-
-      print('✅ Datos mapeados: $datos');
-
-      if (!mounted) return;
-
-      setState(() {
-        _todosLosEstudiantes = datos;
-        _estudiantesFiltrados = datos;
-        _cargando = false;
-      });
-
-      print('🎉 UI actualizada correctamente');
-    } catch (e, stack) {
-      print('❌ ERROR COMPLETO: $e');
-      print('📍 STACKTRACE: $stack');
-
-      if (!mounted) return;
-
-      setState(() {
-        _error = 'Error cargando estudiantes: $e';
-        _cargando = false;
-      });
-    }
-  }
-
-  // ── Agregar estudiante ────────────────────────────────────────
-
-  /// Agrega un nuevo estudiante usando Supabase.
-  Future<void> _agregarEstudiante(
-      String nombre, String apellido, String pin) async {
-    const uuid = Uuid();
-    final nuevoUsuario = {
-      'id': uuid.v4(),
-      'nombre': '$nombre $apellido',
-      'identificacion':
-            pin, // usa pin como identificación temporal (ahora es String)
-    };
-
-    try {
-      await locator<SupabaseService>().insertarUsuario(nuevoUsuario);
-      // Recargar lista después de agregar
-      await _cargarEstudiantes();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Estudiante agregado exitosamente')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al agregar estudiante: $e')),
-      );
-    }
-  }
-
-  // ── Búsqueda ─────────────────────────────────────────────────
-
-  /// Filtra sobre la lista maestra (_todosLosEstudiantes), no sobre la API.
-  void _filtrar() {
-    final query = _searchController.text.toLowerCase().trim();
-    setState(() {
-      _estudiantesFiltrados = _todosLosEstudiantes.where((e) {
-        return e.nombreCompleto.toLowerCase().contains(query) ||
-            e.id.contains(query);
-      }).toList();
-    });
-  }
-
-  // ── Build ─────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Obx(() => Scaffold(
       backgroundColor: _AppColors.background,
       body: SafeArea(
-        child: _currentIndex == 0 
-            ? _buildEstudiantesTab() 
-            : const RecursosQrScreen(),
+        child: controller.currentTab.value == 0
+            ? _buildEstudiantesTab(context)
+            : controller.currentTab.value == 1
+                ? GestionGruposScreen(maestroId: controller.maestroId.value)
+                : const RecursosQrScreen(),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          selectedItemColor: _AppColors.accent,
-          unselectedItemColor: _AppColors.textSecondary,
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.group_rounded),
-              activeIcon: Icon(Icons.group_rounded),
-              label: 'Estudiantes',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_2_rounded),
-              activeIcon: Icon(Icons.qr_code_2_rounded),
-              label: 'Recursos QR',
-            ),
-          ],
-        ),
-      ),
-      // ── FAB AGREGAR (Solo visible en Estudiantes) ─────────────
-      floatingActionButton: _currentIndex == 0 
-          ? _AddFab(
-              onPressed: widget.onAgregarEstudiante,
-              maestroId: widget.maestroId,
-            )
+      bottomNavigationBar: _buildBottomNav(),
+      floatingActionButton: controller.currentTab.value == 0
+          ? _AddFab(maestroId: controller.maestroId.value)
           : null,
+    ));
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: controller.currentTab.value,
+        onTap: (index) => controller.changeTab(index),
+        selectedItemColor: _AppColors.accent,
+        unselectedItemColor: _AppColors.textSecondary,
+        backgroundColor: Colors.white,
+        type: BottomNavigationBarType.fixed,
+        selectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group_rounded),
+            activeIcon: Icon(Icons.group_rounded),
+            label: 'Estudiantes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.folder_rounded),
+            activeIcon: Icon(Icons.folder_rounded),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.qr_code_2_rounded),
+            activeIcon: Icon(Icons.qr_code_2_rounded),
+            label: 'Recursos QR',
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildEstudiantesTab() {
+  Widget _buildEstudiantesTab(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: _cargarEstudiantes,
+      onRefresh: controller.cargarEstudiantes,
       color: _AppColors.accent,
       child: Column(
         children: [
-          _Header(institucion: widget.profesor.institucion),
-          _SearchBar(controller: _searchController),
+          _Header(institucion: controller.profesor.institucion),
+          _SearchBar(controller: controller.searchController),
           _ListHeader(
-            cantidad: _estudiantesFiltrados.length,
-            onExportar: widget.onExportar,
+            cantidad: controller.estudiantesFiltrados.length,
           ),
           Expanded(child: _buildBody()),
         ],
@@ -320,15 +116,14 @@ class _DocenteScreenState extends State<DocenteScreen> {
     );
   }
 
-  /// Decide qué mostrar según el estado de carga.
   Widget _buildBody() {
-    if (_cargando) {
+    if (controller.cargando.value) {
       return const Center(
         child: CircularProgressIndicator(color: _AppColors.accent),
       );
     }
 
-    if (_error != null) {
+    if (controller.error.value != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -339,13 +134,14 @@ class _DocenteScreenState extends State<DocenteScreen> {
                   size: 48, color: _AppColors.textSecondary),
               const SizedBox(height: 16),
               Text(
-                _error!,
+                controller.error.value!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: _AppColors.textSecondary),
+                style:
+                    const TextStyle(color: _AppColors.textSecondary),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: _cargarEstudiantes,
+                onPressed: controller.cargarEstudiantes,
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Reintentar'),
                 style: ElevatedButton.styleFrom(
@@ -361,17 +157,14 @@ class _DocenteScreenState extends State<DocenteScreen> {
       );
     }
 
-    return _EstudiantesList(estudiantes: _estudiantesFiltrados);
+    return _EstudiantesList(
+      estudiantes: controller.estudiantesFiltrados,
+    );
   }
 }
 
-// ============================================================
-// WIDGET: Header marrón con el nombre de la IE
-// ============================================================
-
 class _Header extends StatelessWidget {
   final String institucion;
-
   const _Header({required this.institucion});
 
   @override
@@ -399,7 +192,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  institucion, // ← viene del atributo del profesor
+                  institucion,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -420,12 +213,8 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          // Botón de configuración / menú
-          // TODO: conectar a pantalla de ajustes
           GestureDetector(
-            onTap: () {
-              // TODO: navegar a Settings
-            },
+            onTap: () {},
             child: Container(
               width: 40,
               height: 40,
@@ -446,13 +235,8 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Barra de búsqueda
-// ============================================================
-
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
-
   const _SearchBar({required this.controller});
 
   @override
@@ -498,15 +282,9 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Fila con contador de estudiantes y botón Exportar
-// ============================================================
-
 class _ListHeader extends StatelessWidget {
   final int cantidad;
-  final VoidCallback? onExportar;
-
-  const _ListHeader({required this.cantidad, this.onExportar});
+  const _ListHeader({required this.cantidad});
 
   @override
   Widget build(BuildContext context) {
@@ -523,29 +301,14 @@ class _ListHeader extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          GestureDetector(
-            onTap: onExportar,
-            child: const Text(
-              'Exportar',
-              style: TextStyle(
-                fontSize: 13,
-                color: _AppColors.accent,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-// ============================================================
-// WIDGET: Lista de tarjetas de estudiantes
-// ============================================================
-
 class _EstudiantesList extends StatelessWidget {
-  final List<Estudiante> estudiantes;
+  final List<EstudianteModel> estudiantes;
 
   const _EstudiantesList({required this.estudiantes});
 
@@ -567,7 +330,6 @@ class _EstudiantesList extends StatelessWidget {
       itemBuilder: (context, index) {
         return _EstudianteCard(
           estudiante: estudiantes[index],
-          // TODO: conectar con navegación al perfil del estudiante
           onTap: () {},
         );
       },
@@ -575,18 +337,16 @@ class _EstudiantesList extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Tarjeta individual de estudiante
-// ============================================================
-
 class _EstudianteCard extends StatelessWidget {
-  final Estudiante estudiante;
+  final EstudianteModel estudiante;
   final VoidCallback? onTap;
 
   const _EstudianteCard({required this.estudiante, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final nombreCompleto =
+        '${estudiante.nombre ?? ''} ${estudiante.apellido ?? ''}'.trim();
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -604,17 +364,14 @@ class _EstudianteCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Avatar
-            _Avatar(nombre: estudiante.nombre, url: estudiante.avatarUrl),
+            _Avatar(nombre: estudiante.nombre ?? ''),
             const SizedBox(width: 14),
-
-            // Nombre + ID
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    estudiante.nombreCompleto,
+                    nombreCompleto,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -632,9 +389,7 @@ class _EstudianteCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // PIN badge
-            _PinBadge(pin: estudiante.pinFormateado),
+            _PinBadge(pin: estudiante.pin ?? ''),
           ],
         ),
       ),
@@ -642,51 +397,35 @@ class _EstudianteCard extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Avatar circular con inicial o imagen
-// ============================================================
-
 class _Avatar extends StatelessWidget {
   final String nombre;
-  final String? url;
-
-  const _Avatar({required this.nombre, this.url});
+  const _Avatar({required this.nombre});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 46,
       height: 46,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: _AppColors.accentLight.withValues(alpha: 0.25),
-        image: url != null
-            ? DecorationImage(image: NetworkImage(url!), fit: BoxFit.cover)
-            : null,
+        color: _AppColors.accentLight,
       ),
-      child: url == null
-          ? Center(
-              child: Text(
-                nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: _AppColors.accent,
-                ),
-              ),
-            )
-          : null,
+      child: Center(
+        child: Text(
+          nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: _AppColors.accent,
+          ),
+        ),
+      ),
     );
   }
 }
 
-// ============================================================
-// WIDGET: Badge de PIN
-// ============================================================
-
 class _PinBadge extends StatelessWidget {
   final String pin;
-
   const _PinBadge({required this.pin});
 
   @override
@@ -711,7 +450,7 @@ class _PinBadge extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            pin,
+            'K-$pin',
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -725,30 +464,23 @@ class _PinBadge extends StatelessWidget {
   }
 }
 
-// ============================================================
-// WIDGET: Botón flotante "+"
-// ============================================================
-
 class _AddFab extends StatelessWidget {
-  final VoidCallback? onPressed;
   final String? maestroId;
 
-  const _AddFab({this.onPressed, this.maestroId});
+  const _AddFab({this.maestroId});
 
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: onPressed ??
-          () {
-            // Navegar directamente a la página de agregar estudiante
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => InscribirEstudiantePage(
-                        maestroId: maestroId,
-                      )),
-            );
-          },
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => InscribirEstudiantePage(
+                    maestroId: maestroId,
+                  )),
+        );
+      },
       backgroundColor: _AppColors.accent,
       elevation: 4,
       child: const Icon(Icons.add, color: Colors.white, size: 28),

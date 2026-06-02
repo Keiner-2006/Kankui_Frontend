@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:get_it/get_it.dart';
-import 'package:kankui_app/features/learning/data/repositories/categoria_repository.dart';
+import 'package:kankui_app/features/qr_scanner/presentation/controllers/recursos_qr_controller.dart';
 import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
 import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
-import 'package:kankui_app/shared/services/service_locator.dart';
 
 class RecursosQrScreen extends StatefulWidget {
   const RecursosQrScreen({super.key});
@@ -14,90 +13,44 @@ class RecursosQrScreen extends StatefulWidget {
 }
 
 class _RecursosQrScreenState extends State<RecursosQrScreen> {
-  final CategoriaRepository _categoriaRepo = GetIt.I<CategoriaRepository>();
-  List<CategoriaModel> _categorias = [];
-  bool _isLoading = true;
-  CategoriaModel? _categoriaSeleccionada;
-  List<Vocablo> _objetosDeCategoria = [];
-  bool _isLoadingObjetos = false;
+  late final RecursosQrController controller;
 
   @override
   void initState() {
     super.initState();
-    _cargarCategorias();
-  }
-
-  Future<void> _cargarCategorias() async {
-    try {
-      final categorias = await _categoriaRepo.getCategorias();
-      setState(() {
-        _categorias = categorias;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _seleccionarCategoria(CategoriaModel cat) async {
-    setState(() {
-      _categoriaSeleccionada = cat;
-      _isLoadingObjetos = true;
-    });
-
-    try {
-      final repo = locator<CategoriaRepository>();
-      // Traemos las palabras EN VIVO desde Supabase usando el ID real de la categoría
-      final objetos = await repo.getVocablosPorCategoria(cat.id);
-
-      if (mounted) {
-        setState(() {
-          _objetosDeCategoria = objetos;
-          _isLoadingObjetos = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingObjetos = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al descargar las palabras de la base de datos')),
-        );
-      }
-    }
+    controller = Get.find<RecursosQrController>();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Obx(() => Scaffold(
       backgroundColor: const Color(0xFFFFF8F0),
       appBar: AppBar(
         title: Text(
-            _categoriaSeleccionada == null
+            controller.categoriaSeleccionada.value == null
                 ? 'Recursos Didácticos QR'
-                : _categoriaSeleccionada!.nombre,
+                : controller.categoriaSeleccionada.value!.nombre,
             style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 fontSize: 18)),
         backgroundColor: const Color(0xFF5C2E00),
         elevation: 0,
-        leading: _categoriaSeleccionada != null
+        leading: controller.categoriaSeleccionada.value != null
             ? IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded,
                     color: Colors.white, size: 20),
-                onPressed: () => setState(() => _categoriaSeleccionada = null),
+                onPressed: () => controller.limpiarSeleccion(),
               )
             : null,
       ),
-      body: _isLoading
+      body: controller.isLoading.value
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFFD4730A)))
-          : _categoriaSeleccionada == null
+          : controller.categoriaSeleccionada.value == null
               ? _buildCategoriasGrid()
               : _buildObjetosGrid(),
-    );
+    ));
   }
 
   Widget _buildCategoriasGrid() {
@@ -121,14 +74,14 @@ class _RecursosQrScreenState extends State<RecursosQrScreen> {
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.9,
               ),
-              itemCount: _categorias.length,
+              itemCount: controller.categorias.length,
               itemBuilder: (context, index) {
-                final cat = _categorias[index];
+                final cat = controller.categorias[index];
                 return _ItemCard(
                   title: cat.nombre,
                   subtitle: 'Ver objetos',
                   icon: Icons.folder_open_rounded,
-                  onTap: () => _seleccionarCategoria(cat),
+                  onTap: () => controller.seleccionarCategoria(cat),
                 );
               },
             ),
@@ -139,13 +92,13 @@ class _RecursosQrScreenState extends State<RecursosQrScreen> {
   }
 
   Widget _buildObjetosGrid() {
-    if (_isLoadingObjetos) {
+    if (controller.isLoadingObjetos.value) {
       return const Center(
         child: CircularProgressIndicator(color: Color(0xFFD4730A)),
       );
     }
 
-    if (_objetosDeCategoria.isEmpty) {
+    if (controller.objetosDeCategoria.isEmpty) {
       return const Center(child: Text('No hay palabras registradas en esta categoría'));
     }
 
@@ -176,7 +129,7 @@ class _RecursosQrScreenState extends State<RecursosQrScreen> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton.icon(
-                onPressed: () => _mostrarQrGeneral(context, _categoriaSeleccionada!),
+                onPressed: () => _mostrarQrGeneral(context, controller.categoriaSeleccionada.value!),
                 icon: const Icon(Icons.qr_code_rounded, size: 18),
                 label: const Text('QR Lección Completa', style: TextStyle(fontSize: 13)),
                 style: TextButton.styleFrom(
@@ -195,9 +148,9 @@ class _RecursosQrScreenState extends State<RecursosQrScreen> {
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.8,
               ),
-              itemCount: _objetosDeCategoria.length,
+              itemCount: controller.objetosDeCategoria.length,
               itemBuilder: (context, index) {
-                final vocablo = _objetosDeCategoria[index];
+                final vocablo = controller.objetosDeCategoria[index];
                 return _ItemCard(
                   title: vocablo.palabra,
                   subtitle: vocablo.significado,
@@ -241,9 +194,9 @@ class _RecursosQrScreenState extends State<RecursosQrScreen> {
                 mainAxisSpacing: 20,
                 childAspectRatio: 0.75,
               ),
-              itemCount: _objetosDeCategoria.length,
+              itemCount: controller.objetosDeCategoria.length,
               itemBuilder: (context, index) {
-                final vocablo = _objetosDeCategoria[index];
+                final vocablo = controller.objetosDeCategoria[index];
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(

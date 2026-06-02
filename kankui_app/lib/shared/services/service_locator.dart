@@ -6,6 +6,9 @@ import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'package:kankui_app/features/auth/data/repositories/usuario_repository.dart';
 import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
 import 'package:kankui_app/features/docente/data/repositories/maestro_repository.dart';
+import 'package:kankui_app/features/docente/data/repositories/grupo_repository.dart';
+import 'package:kankui_app/features/docente/data/repositories/reto_grupo_repository.dart';
+import 'package:kankui_app/features/docente/data/repositories/progreso_grupo_repository.dart';
 import 'package:kankui_app/features/learning/data/repositories/categoria_repository.dart';
 
 final GetIt locator = GetIt.instance;
@@ -28,4 +31,10 @@ void setupLocator() {
       () => MaestroRepository(Supabase.instance.client));
   locator.registerLazySingleton<CategoriaRepository>(
       () => CategoriaRepository(Supabase.instance.client));
+  locator.registerLazySingleton<GrupoRepository>(
+      () => GrupoRepository(Supabase.instance.client));
+  locator.registerLazySingleton<RetoGrupoRepository>(
+      () => RetoGrupoRepository(Supabase.instance.client));
+  locator.registerLazySingleton<ProgresoGrupoRepository>(
+      () => ProgresoGrupoRepository(Supabase.instance.client));
 }

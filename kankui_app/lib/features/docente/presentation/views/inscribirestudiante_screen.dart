@@ -1,17 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get_it/get_it.dart';
-import 'package:uuid/uuid.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:kankui_app/features/auth/domain/models/usuario_model.dart';
-import 'package:kankui_app/features/docente/domain/models/estudiantes_model.dart';
-import 'package:kankui_app/features/auth/data/repositories/usuario_repository.dart';
-import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
-import 'package:kankui_app/shared/services/docenteservices.dart';
-
-// ============================================================
-// PALETA DE COLORES (misma que AdminPanelPage)
-// ============================================================
+import 'package:get/get.dart';
+import 'package:kankui_app/features/docente/presentation/controllers/inscribir_estudiante_controller.dart';
 
 class _AppColors {
   static const headerBrown    = Color(0xFF5C2E00);
@@ -31,45 +21,6 @@ class _AppColors {
   static const infoColor      = Color(0xFF8A6E5C);
 }
 
-// ============================================================
-// MODELOS
-// ============================================================
-
-const List<String> _gradosDisponibles = [
-  'Preescolar',
-  'Primero',
-  'Segundo',
-  'Tercero',
-  'Cuarto',
-  'Quinto',
-  'Sexto',
-  'Septimo',
-  'Octavo',
-  'Noveno',
-  'Decimo',
-  'Once',
-];
-
-class NuevoEstudianteResult {
-  final String nombreCompleto;
-  final String identificacion;
-  final String grado;
-  final String pin; 
-
-  const NuevoEstudianteResult({
-    required this.nombreCompleto,
-    required this.identificacion,
-    required this.grado,
-    required this.pin,
-  });
-
-  String get pinFormateado => 'K-$pin';
-}
-
-// ============================================================
-// PANTALLA: Inscribir Estudiante
-// ============================================================
-
 class InscribirEstudiantePage extends StatefulWidget {
   final void Function(NuevoEstudianteResult resultado)? onGuardar;
   final String? maestroId;
@@ -82,280 +33,167 @@ class InscribirEstudiantePage extends StatefulWidget {
 }
 
 class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
-  final _formKey = GlobalKey<FormState>();
-  final docenteservice = DocenteService();
+  late final InscribirEstudianteController controller;
 
-  final _nombreController = TextEditingController();
-  final _idController     = TextEditingController();
-  String? _gradoSeleccionado;
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.find<InscribirEstudianteController>();
 
-  String? _pinGenerado;
-  UsuarioModel? _usuarioGuardado;
-  EstudianteModel? _estudianteGuardado;
+    ever(controller.pinGenerado, (pin) {
+      if (pin != null && mounted) {
+        final resultado = NuevoEstudianteResult(
+          nombreCompleto: controller.nombreController.text.trim(),
+          identificacion: controller.idController.text.trim(),
+          grado: controller.gradoSeleccionado.value!,
+          pin: pin,
+        );
+        widget.onGuardar?.call(resultado);
+        _mostrarDialogoExito(resultado);
+      }
+    });
 
-  bool _guardando = false;
+    ever(controller.errorMessage, (msg) {
+      if (msg != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al guardar: $msg'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
+  }
 
   @override
   void dispose() {
-    _nombreController.dispose();
-    _idController.dispose();
+    controller.limpiar();
     super.dispose();
   }
 
-  Future<void> _guardarYGenerar() async {
-  FocusScope.of(context).unfocus();
+  Future<void> _guardar() async {
+    FocusScope.of(context).unfocus();
+    await controller.guardar();
+  }
 
-  if (!_formKey.currentState!.validate()) return;
-
-  setState(() => _guardando = true);
-
-  try {
-    final supabase = Supabase.instance.client;
-    final docStr = _idController.text.trim();
-
-    // instructor logged in
-    final docente = supabase.auth.currentUser;
-    if (docente == null) {
-      throw Exception('Usuario no autenticado');
-    }
-
-    print("instructor ID: ${docente.id}");
-
-    // =========================
-    // VALIDACIONES DE IDENTIFICACION
-    // =========================
-    
-    // 1. Solo numeros
-    final soloNumeros = RegExp(r'^[0-9]+$');
-    if (!soloNumeros.hasMatch(docStr)) {
-      throw Exception('La cedula solo debe contener numeros');
-    }
-
-    // 2. Longitud minima
-    if (docStr.length < 6) {
-      throw Exception('Cedula demasiado corta (minimo 6 digitos)');
-    }
-
-    // 3. Longitud maxima
-    if (docStr.length > 11) {
-      throw Exception('Cedula excedio su longitud maxima');
-    }
-
-    // 4. Parseo seguro a int para validar limite
-    final docInt = int.tryParse(docStr);
-    if (docInt == null) {
-      throw Exception('La cedula no es valida');
-    }
-
-    // 5. Limite real de PostgreSQL (INTEGER)
-    if (docInt > 2147483647) {
-      throw Exception('Cedula excedio su longitud');
-    }
-
-    // =========================
-    // 1. CREAR USUARIO ESTUDIANTE
-    // =========================
-    final usuarioEstudiante = await supabase.from('usuario').insert({
-      'id': const Uuid().v4(),
-      'nombre': _nombreController.text.trim(),
-      'identificacion': docInt,
-      'rol': 'estudiante',
-    }).select().single();
-
-    final usuarioEstudianteId = usuarioEstudiante['id'];
-
-    print("Usuario estudiante creado: $usuarioEstudianteId");
-
-    // =========================
-    // 2. CREAR OBJETO ESTUDIANTE
-    // =========================
-    final estudiante = Estudiante(
-      id: const Uuid().v4(),
-      usuarioId: usuarioEstudianteId,
-      identificacion: docStr,
-      curso: _gradoSeleccionado,
-      grupo: null,
-      pin: '',
-      ultimaActividad: DateTime.now(),
-    );
-
-    // =========================
-    // 3. CREAR ESTUDIANTE CON PIN UNICO
-    // =========================
-    final estudianteCreado = await docenteservice.crearEstudianteConPinUnico(
-      estudiante,
-      docente.id,
-      usuarioEstudianteId,
-    );
-
-    final pinGenerado = estudianteCreado.pin;
-
-    if (pinGenerado == null || pinGenerado.isEmpty) {
-      throw Exception('PIN generado invalido');
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _pinGenerado = pinGenerado;
-      _guardando = false;
-    });
-
-    final resultado = NuevoEstudianteResult(
-      nombreCompleto: _nombreController.text.trim(),
-      identificacion: docStr,
-      grado: _gradoSeleccionado!,
-      pin: pinGenerado,
-    );
-
-    widget.onGuardar?.call(resultado);
-    _mostrarDialogoExito(resultado);
-
-  } catch (e) {
-    if (!mounted) return;
-
-    setState(() => _guardando = false);
-
-    print('Error al guardar estudiante: $e');
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error al guardar: $e'),
-        backgroundColor: Colors.red,
+  void _mostrarDialogoExito(NuevoEstudianteResult resultado) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8F5),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFE5D0),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Color(0xFFE8842A),
+                  size: 42,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Estudiante registrado!',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                resultado.nombreCompleto,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF9E9E9E),
+                ),
+              ),
+              const SizedBox(height: 28),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFCE8),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFFE8D48A),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      'PIN del estudiante',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF757575),
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      resultado.pin,
+                      style: const TextStyle(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFFCC8B2D),
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5C3D2E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Listo',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
-}
-
-
-
-  void _mostrarDialogoExito(NuevoEstudianteResult resultado) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF8F5), // Rosa melocoton muy palido
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Icono de check
-            Container(
-              width: 72,
-              height: 72,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFE5D0), // Melocoton claro
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_rounded,
-                color: Color(0xFFE8842A), // Naranja intenso
-                size: 42,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Titulo
-            const Text(
-              'Estudiante registrado!',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1A1A1A), // Negro
-              ),
-            ),
-            const SizedBox(height: 6),
-
-            // Nombre del estudiante
-            Text(
-              resultado.nombreCompleto,
-              style: const TextStyle(
-                fontSize: 16,
-                color: Color(0xFF9E9E9E), // Gris medio
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // Recuadro del PIN
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFCE8), // Amarillo muy claro/crema
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: const Color(0xFFE8D48A), // Amarillo/mostaza
-                  width: 1.5,
-                ),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'PIN del estudiante',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF757575), // Gris
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    resultado.pin,
-                    style: const TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFFCC8B2D), // Dorado/mostaza
-                      letterSpacing: 3,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-
-            // Boton Listo
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5C3D2E), // Marron chocolate
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Listo',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Obx(() => Scaffold(
       backgroundColor: _AppColors.background,
       body: Column(
         children: [
@@ -364,14 +202,14 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 28, 20, 40),
               child: Form(
-                key: _formKey,
+                key: controller.formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _FormField(
                       label: 'Nombre Completo',
                       child: _InputText(
-                        controller: _nombreController,
+                        controller: controller.nombreController,
                         hint: 'Ej: Juan Carlos Kakuamo Torres',
                         keyboardType: TextInputType.name,
                         textCapitalization: TextCapitalization.words,
@@ -390,7 +228,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
                     _FormField(
                       label: 'Numero de Identificacion',
                       child: _InputText(
-                        controller: _idController,
+                        controller: controller.idController,
                         hint: '1234567890',
                         keyboardType: TextInputType.number,
                         inputFormatters: [
@@ -412,19 +250,18 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
                     _FormField(
                       label: 'Grado Escolar',
                       child: _GradoDropdown(
-                        valor: _gradoSeleccionado,
-                        onChanged: (v) =>
-                            setState(() => _gradoSeleccionado = v),
+                        valor: controller.gradoSeleccionado.value,
+                        onChanged: (v) => controller.gradoSeleccionado.value = v,
                         validator: (v) =>
                             v == null ? 'Selecciona un grado' : null,
                       ),
                     ),
                     const SizedBox(height: 28),
-                    _PinPreview(pin: _pinGenerado),
+                    _PinPreview(pin: controller.pinGenerado.value),
                     const SizedBox(height: 28),
                     _BotonGuardar(
-                      cargando: _guardando,
-                      onPressed: _guardarYGenerar,
+                      cargando: controller.guardando.value,
+                      onPressed: _guardar,
                     ),
                     const SizedBox(height: 20),
                     const _NotaInformativa(
@@ -439,7 +276,7 @@ class _InscribirEstudiantePageState extends State<InscribirEstudiantePage> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -611,7 +448,7 @@ class _GradoDropdown extends StatelessWidget {
           borderSide: const BorderSide(color: _AppColors.inputBorder),
         ),
       ),
-      items: _gradosDisponibles.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+      items: gradosDisponibles.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
     );
   }
 }
@@ -686,22 +523,6 @@ class _NotaInformativa extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(child: Text(texto, style: const TextStyle(fontSize: 12, color: _AppColors.infoColor))),
       ],
-    );
-  }
-}
-
-// Faltan componentes como _DialogoExito, se asume que estan definidos abajo o en otro archivo
-// Para que compile si faltan, podrias necesitar definirlos o importarlos.
-class _DialogoExito extends StatelessWidget {
-  final NuevoEstudianteResult resultado;
-  final VoidCallback onAceptar;
-  const _DialogoExito({required this.resultado, required this.onAceptar});
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Exito!'),
-      content: Text('Estudiante registrado. PIN: ${resultado.pinFormateado}'),
-      actions: [TextButton(onPressed: onAceptar, child: const Text('Aceptar'))],
     );
   }
 }

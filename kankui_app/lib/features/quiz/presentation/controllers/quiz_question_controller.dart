@@ -17,7 +17,7 @@ class QuizQuestionController extends GetxController
 
   late List<PreguntaQuizModel> preguntas;
   late List<int?> respuestasUsuario;
-  late int preguntaIndex;
+  final preguntaIndex = 0.obs;
   late AnimationController timerController;
   late Animation<double> timerAnimation;
 
@@ -37,7 +37,6 @@ class QuizQuestionController extends GetxController
 
     preguntas = reto.preguntasQuiz;
     respuestasUsuario = List<int?>.filled(preguntas.length, null);
-    preguntaIndex = 0;
 
     timerController = AnimationController(
       vsync: this,
@@ -68,7 +67,7 @@ class QuizQuestionController extends GetxController
     selectedOptionIndex.value = index;
     respondida.value = true;
     timerController.stop();
-    respuestasUsuario[preguntaIndex] = index;
+    respuestasUsuario[preguntaIndex.value] = index;
 
     Future.delayed(const Duration(seconds: 1), () {
       mostrandoResultado.value = true;
@@ -76,8 +75,8 @@ class QuizQuestionController extends GetxController
   }
 
   void nextQuestion() {
-    if (preguntaIndex < preguntas.length - 1) {
-      preguntaIndex++;
+    if (preguntaIndex.value < preguntas.length - 1) {
+      preguntaIndex.value++;
       mostrandoResultado.value = false;
       respondida.value = false;
       selectedOptionIndex.value = null;

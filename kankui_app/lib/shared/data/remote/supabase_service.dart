@@ -52,7 +52,7 @@ class SupabaseService {
 
   // CRUD para Usuarios
   Future<void> insertarUsuario(Map<String, dynamic> usuario) async {
-    await supabase.from('usuarios').insert({
+    await supabase.from('usuario').insert({
       'id': usuario['id'],
       'nombre': usuario['nombre'],
       'identificacion': usuario['identificacion'],
@@ -110,30 +110,30 @@ Future<String> obtenerMaestroId(String userId) async {
 }
 
   Future<List<Map<String, dynamic>>> obtenerUsuarios() async {
-    final response = await supabase.from('usuarios').select();
+    final response = await supabase.from('usuario').select();
     return response;
   }
 
   Future<Map<String, dynamic>?> obtenerUsuarioPorId(String id) async {
     final response =
-        await supabase.from('usuarios').select().eq('id', id).single();
+        await supabase.from('usuario').select().eq('id', id).single();
     return response;
   }
 
   Future<void> actualizarUsuario(
       String id, Map<String, dynamic> updates) async {
-    await supabase.from('usuarios').update(updates).eq('id', id);
+    await supabase.from('usuario').update(updates).eq('id', id);
   }
 
   Future<void> eliminarUsuario(String id) async {
-    await supabase.from('usuarios').delete().eq('id', id);
+    await supabase.from('usuario').delete().eq('id', id);
   }
 
   // Consulta estudiantes por institución
   Future<List<Map<String, dynamic>>> obtenerEstudiantesPorInstitucion(
       String institucionId) async {
     final response = await supabase
-        .from('usuarios')
+        .from('usuario')
         .select()
         .eq('institucion_id', institucionId)
         .eq('rol', 'estudiante');

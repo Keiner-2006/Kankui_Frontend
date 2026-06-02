@@ -43,11 +43,11 @@ class EstudianteRepository {
       throw Exception('Cédula excedió su longitud');
     }
 
-    // ✅ 5. VALIDAR QUE NO EXISTA (UNICIDAD)
+    // ✅ 5. VALIDAR QUE NO EXISTA (UNICIDAD en tabla usuario)
     final existente = await supabase
-        .from(_tableName)
+        .from('usuario')
         .select('id')
-        .eq('numero_documento', docInt)
+        .eq('identificacion', docStr)
         .maybeSingle();
 
     if (existente != null) {

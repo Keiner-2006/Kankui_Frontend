@@ -32,7 +32,7 @@ class DatabaseService {
 
     final db = await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -123,6 +123,13 @@ class DatabaseService {
     CREATE TABLE maestro (
       id TEXT PRIMARY KEY,
       usuario_id TEXT NOT NULL,
+      anios_experiencia INTEGER DEFAULT 0,
+      institucion_id TEXT,
+      especializacion TEXT,
+      materias TEXT DEFAULT '[]',
+      grados_asignados TEXT DEFAULT '[]',
+      telefono TEXT,
+      correo_institucional TEXT,
       FOREIGN KEY (usuario_id) REFERENCES usuario(id)
   )
 ''');
@@ -224,11 +231,9 @@ class DatabaseService {
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     // Manejar migraciones futuras aqui
     if (oldVersion < 2) {
-      // Version 2: Añadir columna image_url a la tabla palabra
       await db.execute('ALTER TABLE palabra ADD COLUMN image_url TEXT');
     }
     if (oldVersion < 3) {
-      // Version 3: Remover FK de categoria_id en progreso_categoria
       await db.execute('PRAGMA foreign_keys = OFF');
       await db.execute('''
         CREATE TABLE progreso_categoria_temp (
@@ -250,6 +255,31 @@ class DatabaseService {
       ''');
       await db.execute('DROP TABLE progreso_categoria');
       await db.execute('ALTER TABLE progreso_categoria_temp RENAME TO progreso_categoria');
+      await db.execute('PRAGMA foreign_keys = ON');
+    }
+    if (oldVersion < 4) {
+      // Version 4: Agregar columnas faltantes a tabla maestro
+      await db.execute('PRAGMA foreign_keys = OFF');
+      await db.execute('''
+        CREATE TABLE maestro_temp (
+          id TEXT PRIMARY KEY,
+          usuario_id TEXT NOT NULL,
+          anios_experiencia INTEGER DEFAULT 0,
+          institucion_id TEXT,
+          especializacion TEXT,
+          materias TEXT DEFAULT '[]',
+          grados_asignados TEXT DEFAULT '[]',
+          telefono TEXT,
+          correo_institucional TEXT,
+          FOREIGN KEY (usuario_id) REFERENCES usuario(id)
+        )
+      ''');
+      await db.execute('''
+        INSERT INTO maestro_temp (id, usuario_id)
+        SELECT id, usuario_id FROM maestro
+      ''');
+      await db.execute('DROP TABLE maestro');
+      await db.execute('ALTER TABLE maestro_temp RENAME TO maestro');
       await db.execute('PRAGMA foreign_keys = ON');
     }
   }
