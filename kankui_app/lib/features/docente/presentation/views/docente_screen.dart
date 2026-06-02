@@ -66,10 +66,23 @@ class _AppColors {
   static const searchBorder = Color(0xFFE0D5CB);
 }
 
+// ============================================================
+// PANTALLA PRINCIPAL: Panel de Administración
+// ============================================================
+
 class DocenteScreen extends StatefulWidget {
+  final Profesor profesor;
+  final VoidCallback? onAgregarEstudiante;
+  final VoidCallback? onExportar;
   final String? maestroId;
 
-  const DocenteScreen({super.key, this.maestroId});
+  const DocenteScreen({
+    super.key,
+    required this.profesor,
+    this.onAgregarEstudiante,
+    this.onExportar,
+    this.maestroId,
+  });
 
   @override
   State<DocenteScreen> createState() => _DocenteScreenState();
@@ -131,26 +144,22 @@ class _DocenteScreenState extends State<DocenteScreen> {
           ),
         ),
         floatingActionButton: currentIndex == 0
-            ? _AddFab(
-                onPressed: widget.onAgregarEstudiante,
-                maestroId: widget.maestroId,
-              )
+            ? _AddFab(maestroId: widget.maestroId)
             : null,
       );
     });
   }
 
-  Widget _buildEstudiantesTab(BuildContext context) {
+  Widget _buildEstudiantesTab() {
     return RefreshIndicator(
       onRefresh: controller.cargarEstudiantes,
       color: _AppColors.accent,
       child: Column(
         children: [
-          _Header(institucion: widget.profesor.institucion),
+          const _Header(institucion: 'Institución Educativa'),
           _SearchBar(controller: controller.searchController),
           _ListHeader(
             cantidad: controller.estudiantesFiltrados.length,
-            onExportar: widget.onExportar,
           ),
           Expanded(child: _buildBody()),
         ],
@@ -178,8 +187,7 @@ class _DocenteScreenState extends State<DocenteScreen> {
               Text(
                 controller.error.value!,
                 textAlign: TextAlign.center,
-                style:
-                    const TextStyle(color: _AppColors.textSecondary),
+                style: const TextStyle(color: _AppColors.textSecondary),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
@@ -203,8 +211,13 @@ class _DocenteScreenState extends State<DocenteScreen> {
   }
 }
 
+// ============================================================
+// WIDGET: Header marrón con el nombre de la IE
+// ============================================================
+
 class _Header extends StatelessWidget {
   final String institucion;
+
   const _Header({required this.institucion});
 
   @override
@@ -232,7 +245,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  institucion,
+                  institucion, // ← viene del atributo del profesor
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -253,8 +266,12 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          // Botón de configuración / menú
+          // TODO: conectar a pantalla de ajustes
           GestureDetector(
-            onTap: () {},
+            onTap: () {
+              // TODO: navegar a Settings
+            },
             child: Container(
               width: 40,
               height: 40,
@@ -275,8 +292,13 @@ class _Header extends StatelessWidget {
   }
 }
 
+// ============================================================
+// WIDGET: Barra de búsqueda
+// ============================================================
+
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
+
   const _SearchBar({required this.controller});
 
   @override
@@ -322,9 +344,14 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
+// ============================================================
+// WIDGET: Fila con contador de estudiantes y botón Exportar
+// ============================================================
+
 class _ListHeader extends StatelessWidget {
   final int cantidad;
-  const _ListHeader({required this.cantidad});
+
+  const _ListHeader({required this.cantidad, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -341,11 +368,23 @@ class _ListHeader extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+          const Text(
+            'Exportar',
+            style: TextStyle(
+              fontSize: 13,
+              color: _AppColors.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
   }
 }
+
+// ============================================================
+// WIDGET: Lista de tarjetas de estudiantes
+// ============================================================
 
 class _EstudiantesList extends StatelessWidget {
   final List<Map<String, dynamic>> estudiantes;
@@ -370,12 +409,17 @@ class _EstudiantesList extends StatelessWidget {
       itemBuilder: (context, index) {
         return _EstudianteCard(
           estudiante: estudiantes[index],
+          // TODO: conectar con navegación al perfil del estudiante
           onTap: () {},
         );
       },
     );
   }
 }
+
+// ============================================================
+// WIDGET: Tarjeta individual de estudiante
+// ============================================================
 
 class _EstudianteCard extends StatelessWidget {
   final Map<String, dynamic> estudiante;
@@ -412,6 +456,8 @@ class _EstudianteCard extends StatelessWidget {
             // Avatar
             _Avatar(nombre: nombre, url: avatarUrl),
             const SizedBox(width: 14),
+
+            // Nombre + ID
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,35 +491,51 @@ class _EstudianteCard extends StatelessWidget {
   }
 }
 
+// ============================================================
+// WIDGET: Avatar circular con inicial o imagen
+// ============================================================
+
 class _Avatar extends StatelessWidget {
   final String nombre;
-  const _Avatar({required this.nombre});
+  final String? url;
+
+  const _Avatar({required this.nombre, this.url});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 46,
       height: 46,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _AppColors.accentLight,
+        color: _AppColors.accentLight.withValues(alpha: 0.25),
+        image: url != null
+            ? DecorationImage(image: NetworkImage(url!), fit: BoxFit.cover)
+            : null,
       ),
-      child: Center(
-        child: Text(
-          nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: _AppColors.accent,
-          ),
-        ),
-      ),
+      child: url == null
+          ? Center(
+              child: Text(
+                nombre.isNotEmpty ? nombre[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: _AppColors.accent,
+                ),
+              ),
+            )
+          : null,
     );
   }
 }
 
+// ============================================================
+// WIDGET: Badge de PIN
+// ============================================================
+
 class _PinBadge extends StatelessWidget {
   final String pin;
+
   const _PinBadge({required this.pin});
 
   @override
@@ -498,7 +560,7 @@ class _PinBadge extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'K-$pin',
+            pin,
             style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -512,23 +574,30 @@ class _PinBadge extends StatelessWidget {
   }
 }
 
+// ============================================================
+// WIDGET: Botón flotante "+"
+// ============================================================
+
 class _AddFab extends StatelessWidget {
+  final VoidCallback? onPressed;
   final String? maestroId;
 
-  const _AddFab({this.maestroId});
+  const _AddFab({this.onPressed, this.maestroId});
 
   @override
   Widget build(BuildContext context) {
     return FloatingActionButton(
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => InscribirEstudiantePage(
-                    maestroId: maestroId,
-                  )),
-        );
-      },
+      onPressed: onPressed ??
+          () {
+            // Navegar directamente a la página de agregar estudiante
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => InscribirEstudiantePage(
+                        maestroId: maestroId,
+                      )),
+            );
+          },
       backgroundColor: _AppColors.accent,
       elevation: 4,
       child: const Icon(Icons.add, color: Colors.white, size: 28),

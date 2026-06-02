@@ -7,12 +7,11 @@ class DocenteController extends GetxController {
   final EstudianteRepository _repo =
       EstudianteRepository(Supabase.instance.client);
 
-  final todosLosEstudiantes = <EstudianteModel>[].obs;
-  final estudiantesFiltrados = <EstudianteModel>[].obs;
+  final todosLosEstudiantes = <Map<String, dynamic>>[].obs;
+  final estudiantesFiltrados = <Map<String, dynamic>>[].obs;
   final cargando = true.obs;
   final error = Rxn<String>();
   final currentTab = 0.obs;
-  final maestroId = Rxn<String>();
 
   final searchController = TextEditingController();
 
@@ -21,22 +20,6 @@ class DocenteController extends GetxController {
     super.onInit();
     searchController.addListener(filter);
     cargarEstudiantes();
-    _cargarMaestroId();
-  }
-
-  Future<void> _cargarMaestroId() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-    try {
-      final data = await Supabase.instance.client
-          .from('maestro')
-          .select('id')
-          .eq('usuario_id', user.id)
-          .maybeSingle();
-      if (data != null) {
-        maestroId.value = data['id'];
-      }
-    } catch (_) {}
   }
 
   @override
@@ -93,9 +76,4 @@ class DocenteController extends GetxController {
   void changeTab(int index) {
     currentTab.value = index;
   }
-
-  String nombreCompleto(EstudianteModel e) =>
-      '${e.nombre ?? ''} ${e.apellido ?? ''}'.trim();
-
-  String pinFormateado(EstudianteModel e) => 'K-${e.pin ?? ''}';
 }

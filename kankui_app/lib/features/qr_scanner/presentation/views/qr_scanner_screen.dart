@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:kankui_app/features/qr_scanner/presentation/controllers/scanner_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kankui_app/features/learning/data/repositories/categoria_repository.dart';
+import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
+import 'package:kankui_app/shared/services/service_locator.dart';
+import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
+import 'package:get/get.dart';
+import 'package:kankui_app/features/qr_scanner/presentation/views/kankuama_info_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -12,7 +17,8 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  late final ScannerController controller;
+  late MobileScannerController cameraController;
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -223,7 +229,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         actions: [
           IconButton(
             icon: ValueListenableBuilder<MobileScannerState>(
-              valueListenable: controller.cameraController,
+              valueListenable: cameraController,
               builder: (context, state, child) {
                 switch (state.torchState) {
                   case TorchState.off:
@@ -237,11 +243,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                 }
               },
             ),
-            onPressed: () => controller.cameraController.toggleTorch(),
+            onPressed: () => cameraController.toggleTorch(),
           ),
           IconButton(
             icon: const Icon(Icons.cameraswitch, color: Colors.white),
-            onPressed: () => controller.cameraController.switchCamera(),
+            onPressed: () => cameraController.switchCamera(),
           ),
         ],
       ),
@@ -249,10 +255,11 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
       body: Stack(
         children: [
           MobileScanner(
-            controller: controller.cameraController,
-            onDetect: controller.onDetect,
+            controller: cameraController,
+            onDetect: _onDetect,
             scanWindow: scanWindow,
           ),
+          // Diseño del marco para escanear
           CustomPaint(
             painter: _ScannerOverlayPainter(scanWindow: scanWindow),
             child: Container(),
@@ -320,21 +327,25 @@ class _ScannerOverlayPainter extends CustomPainter {
     // Dibujar esquinas
     const double cornerLength = 30.0;
 
+    // Top-Left
     canvas.drawLine(scanWindow.topLeft,
         scanWindow.topLeft + const Offset(cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.topLeft,
         scanWindow.topLeft + const Offset(0, cornerLength), borderPaint);
 
+    // Top-Right
     canvas.drawLine(scanWindow.topRight,
         scanWindow.topRight + const Offset(-cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.topRight,
         scanWindow.topRight + const Offset(0, cornerLength), borderPaint);
 
+    // Bottom-Left
     canvas.drawLine(scanWindow.bottomLeft,
         scanWindow.bottomLeft + const Offset(cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.bottomLeft,
         scanWindow.bottomLeft + const Offset(0, -cornerLength), borderPaint);
 
+    // Bottom-Right
     canvas.drawLine(scanWindow.bottomRight,
         scanWindow.bottomRight + const Offset(-cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.bottomRight,

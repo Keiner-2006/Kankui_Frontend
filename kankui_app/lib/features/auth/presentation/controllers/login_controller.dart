@@ -8,7 +8,7 @@ import 'package:kankui_app/shared/data/remote/supabase_service.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
 import 'package:kankui_app/shared/data/local/models_local.dart';
 import 'package:kankui_app/shared/services/notificacion_service.dart';
-import 'package:kankui_app/features/docente/presentation/controllers/docente_controller.dart';
+import 'package:kankui_app/features/docente/presentation/views/docente_screen.dart';
 
 class LoginController extends GetxController {
   final SessionManager _session = Get.find();

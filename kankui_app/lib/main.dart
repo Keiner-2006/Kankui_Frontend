@@ -8,9 +8,8 @@ import 'package:kankui_app/features/learning/presentation/views/lessons_screen.d
 import 'package:kankui_app/features/learning/presentation/views/lesson_detail_screen.dart';
 import 'package:kankui_app/features/quiz/presentation/views/quiz_screen.dart';
 import 'package:kankui_app/features/quiz/presentation/views/quiz_question_screen.dart';
-import 'package:kankui_app/features/quiz/presentation/views/quiz_resumen_screen.dart';
+import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/scanner_screen.dart';
-import 'package:kankui_app/features/qr_scanner/presentation/views/kankuama_info_screen.dart';
 import 'package:kankui_app/features/docente/presentation/views/docente_screen.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -28,7 +27,8 @@ void main() async {
 
   await Supabase.initialize(
     url: ApiConstants.supabaseUrl,
-    anonKey: ApiConstants.supabaseAnonKey,
+    anonKey:
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnaG5ieXVhbnh4aHRwbGxhem1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTc5MzUsImV4cCI6MjA5MTA5MzkzNX0.fboYT3pGgMKXDmaKNvfYr9FJ94cxnaoEiKRwz_h6cTY',
   );
 
   setupLocator();
@@ -63,11 +63,15 @@ class KankuiApp extends StatelessWidget {
         GetPage(name: '/lessons', page: () => const LessonsScreen()),
         GetPage(name: '/lesson-detail', page: () => const LessonDetailScreen()),
         GetPage(name: '/quiz', page: () => const QuizScreen()),
-        GetPage(name: '/quiz-question', page: () => const QuizQuestionScreen()),
-        GetPage(name: '/quiz-resumen', page: () => const QuizResumenScreen()),
+        GetPage(name: '/quiz-question', page: () {
+          final args = Get.arguments as Map<String, dynamic>;
+          return QuizQuestionScreen(
+            reto: args['reto'] as RetoQuizModel,
+            categoriaNombre: args['categoriaNombre'] as String?,
+          );
+        }),
         GetPage(name: '/scanner', page: () => const ScannerScreen()),
-        GetPage(name: '/kankuama-info', page: () => const KankuamaInfoScreen()),
-        GetPage(name: '/docente', page: () => const DocenteScreen()),
+        GetPage(name: '/docente', page: () => DocenteScreen(profesor: Get.arguments as Profesor)),
       ],
     );
   }

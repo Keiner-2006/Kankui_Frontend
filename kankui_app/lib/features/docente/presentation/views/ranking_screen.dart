@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
-import 'package:kankui_app/shared/services/sesionmanager.dart';
+import 'package:get/get.dart';
+import 'package:kankui_app/features/docente/presentation/controllers/ranking_controller.dart';
+import 'package:kankui_app/shared/data/user_progress.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
-import 'package:kankui_app/shared/data/user_progress.dart';
 
 class RankingScreen extends StatefulWidget {
   final UserProgress userProgress;
@@ -15,22 +15,7 @@ class RankingScreen extends StatefulWidget {
 }
 
 class _RankingScreenState extends State<RankingScreen> {
-  bool _loading = true;
-  late final EstudianteRepository _repo;
-  List<EstudianteModel> _ranking = [];
-  String? _errorMessage;
-
-  // Niveles de sabiduría definidos localmente
-  final List<_NivelSabiduria> _nivelesSabiduria = [
-    const _NivelSabiduria(nivel: 1, nombre: 'Semilla',  xpRequerido: 0),
-    const _NivelSabiduria(nivel: 2, nombre: 'Brote',    xpRequerido: 100),
-    const _NivelSabiduria(nivel: 3, nombre: 'Raíz',     xpRequerido: 300),
-    const _NivelSabiduria(nivel: 4, nombre: 'Hoja',     xpRequerido: 600),
-    const _NivelSabiduria(nivel: 5, nombre: 'Flor',     xpRequerido: 1000),
-    const _NivelSabiduria(nivel: 6, nombre: 'Fruto',    xpRequerido: 1500),
-    const _NivelSabiduria(nivel: 7, nombre: 'Árbol',    xpRequerido: 2500),
-    const _NivelSabiduria(nivel: 8, nombre: 'Bosque',   xpRequerido: 4000),
-  ];
+  late final RankingController controller;
 
   @override
   void initState() {
@@ -144,7 +129,7 @@ class _RankingScreenState extends State<RankingScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              '${_ranking.length} participantes',
+                              '${controller.ranking.length} participantes',
                               style: const TextStyle(
                                 color: AppColors.terracota,
                                 fontWeight: FontWeight.w500,
@@ -415,14 +400,13 @@ class _RankingScreenState extends State<RankingScreen> {
 
   Widget _buildRankingItem(BuildContext context, int index) {
     final item = controller.ranking[index];
-    final currentUserId = SessionManager().usuario?.id;
-    final isCurrentUser = item.usuarioId == currentUserId;
+    final currentUserId = item.usuarioId;
+    final isCurrentUser = currentUserId == currentUserId;
     final position      = index + 1;
 
     final nombreFinal =
       '${item.nombre ?? ''} ${item.apellido ?? ''}'
-          .trim()
-          .ifEmpty('Sin nombre');
+          .trim();
     final xp    = item.xpTotal;
     final racha = item.rachaDias;
     final nivel = controller.obtenerNivelPorXP(xp);
@@ -782,8 +766,4 @@ class _RankingScreenState extends State<RankingScreen> {
       ),
     );
   }
-}
-
-extension _StringIfEmpty on String {
-  String ifEmpty(String fallback) => isEmpty ? fallback : this;
 }
