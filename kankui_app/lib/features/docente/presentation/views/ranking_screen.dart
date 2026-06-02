@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:kankui_app/features/docente/presentation/controllers/ranking_controller.dart';
+import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
 import 'package:kankui_app/shared/services/sesionmanager.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
@@ -16,7 +15,22 @@ class RankingScreen extends StatefulWidget {
 }
 
 class _RankingScreenState extends State<RankingScreen> {
-  late final RankingController controller;
+  bool _loading = true;
+  late final EstudianteRepository _repo;
+  List<EstudianteModel> _ranking = [];
+  String? _errorMessage;
+
+  // Niveles de sabiduría definidos localmente
+  final List<_NivelSabiduria> _nivelesSabiduria = [
+    const _NivelSabiduria(nivel: 1, nombre: 'Semilla',  xpRequerido: 0),
+    const _NivelSabiduria(nivel: 2, nombre: 'Brote',    xpRequerido: 100),
+    const _NivelSabiduria(nivel: 3, nombre: 'Raíz',     xpRequerido: 300),
+    const _NivelSabiduria(nivel: 4, nombre: 'Hoja',     xpRequerido: 600),
+    const _NivelSabiduria(nivel: 5, nombre: 'Flor',     xpRequerido: 1000),
+    const _NivelSabiduria(nivel: 6, nombre: 'Fruto',    xpRequerido: 1500),
+    const _NivelSabiduria(nivel: 7, nombre: 'Árbol',    xpRequerido: 2500),
+    const _NivelSabiduria(nivel: 8, nombre: 'Bosque',   xpRequerido: 4000),
+  ];
 
   @override
   void initState() {
@@ -130,8 +144,8 @@ class _RankingScreenState extends State<RankingScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              '${controller.ranking.length} participantes',
-                              style: TextStyle(
+                              '${_ranking.length} participantes',
+                              style: const TextStyle(
                                 color: AppColors.terracota,
                                 fontWeight: FontWeight.w500,
                               ),

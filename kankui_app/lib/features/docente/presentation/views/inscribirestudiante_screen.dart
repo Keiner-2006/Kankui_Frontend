@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:get/get.dart';
-import 'package:kankui_app/features/docente/presentation/controllers/inscribir_estudiante_controller.dart';
+import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kankui_app/features/auth/domain/models/usuario_model.dart';
+import 'package:kankui_app/features/docente/domain/models/estudiantes_model.dart';
+import 'package:kankui_app/shared/services/docenteservices.dart';
+
+// ============================================================
+// PALETA DE COLORES (misma que AdminPanelPage)
+// ============================================================
 
 class _AppColors {
   static const headerBrown    = Color(0xFF5C2E00);
@@ -320,9 +327,9 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          Column(
+          const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
+            children: [
               Text(
                 'Inscribir Estudiante',
                 style: TextStyle(
@@ -433,7 +440,7 @@ class _GradoDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      value: valor,
+      initialValue: valor,
       onChanged: onChanged,
       validator: validator,
       hint: const Text('Seleccionar grado...', style: TextStyle(color: _AppColors.hintColor, fontSize: 14)),

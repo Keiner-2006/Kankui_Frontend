@@ -1,10 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kankui_app/features/docente/presentation/controllers/docente_controller.dart';
-import 'package:kankui_app/features/docente/domain/models/estudiantes_model.dart';
 import 'package:kankui_app/features/docente/presentation/views/inscribirestudiante_screen.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/recursos_qr_screen.dart';
-import 'package:kankui_app/features/docente/presentation/views/gestion_grupos_screen.dart';
+
+// ============================================================
+// MODELOS DE DATOS
+// ============================================================
+
+/// Modelo del Profesor autenticado.
+/// El nombre de la institución se obtiene desde este objeto.
+class Profesor {
+  final String nombre;
+  final String apellido;
+  final String correo;
+  final String institucion; // <-- nombre de la IE que aparece en el header
+  final String? avatarUrl;
+
+  const Profesor({
+    required this.nombre,
+    required this.apellido,
+    required this.correo,
+    required this.institucion,
+    this.avatarUrl,
+  });
+}
+
+/// Modelo de Estudiante registrado.
+class Estudiante {
+  final String id;
+  final String nombre;
+  final String apellido;
+  final String pin;
+  final String identificacion; // Número de identificación (join con usuario)
+  final String? avatarUrl;
+
+  const Estudiante({
+    required this.id,
+    required this.nombre,
+    required this.apellido,
+    required this.pin,
+    this.identificacion = '',
+    this.avatarUrl,
+  });
+
+  String get nombreCompleto => '$nombre $apellido';
+  String get pinFormateado => 'K-$pin';
+}
+
+// ============================================================
+// PALETA DE COLORES
+// ============================================================
 
 class _AppColors {
   static const headerBrown = Color(0xFF5C2E00);
@@ -18,7 +64,6 @@ class _AppColors {
   static const pinBackground = Color(0xFFF0EBE5);
   static const pinText = Color(0xFF3A7D44);
   static const searchBorder = Color(0xFFE0D5CB);
-  static const divider = Color(0xFFF0E8DF);
 }
 
 class DocenteScreen extends StatefulWidget {
@@ -41,62 +86,58 @@ class _DocenteScreenState extends State<DocenteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Scaffold(
-      backgroundColor: _AppColors.background,
-      body: SafeArea(
-        child: controller.currentTab.value == 0
-            ? _buildEstudiantesTab(context)
-            : controller.currentTab.value == 1
-                ? GestionGruposScreen(maestroId: controller.maestroId.value)
-                : const RecursosQrScreen(),
-      ),
-      bottomNavigationBar: _buildBottomNav(),
-      floatingActionButton: controller.currentTab.value == 0
-          ? _AddFab(maestroId: controller.maestroId.value)
-          : null,
-    ));
-  }
+    return Obx(() {
+      final currentIndex = controller.currentTab.value;
 
-  Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+      return Scaffold(
+        backgroundColor: _AppColors.background,
+        body: SafeArea(
+          child: currentIndex == 0
+              ? _buildEstudiantesTab()
+              : const RecursosQrScreen(),
+        ),
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        currentIndex: controller.currentTab.value,
-        onTap: (index) => controller.changeTab(index),
-        selectedItemColor: _AppColors.accent,
-        unselectedItemColor: _AppColors.textSecondary,
-        backgroundColor: Colors.white,
-        type: BottomNavigationBarType.fixed,
-        selectedLabelStyle:
-            const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        unselectedLabelStyle: const TextStyle(fontSize: 12),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.group_rounded),
-            activeIcon: Icon(Icons.group_rounded),
-            label: 'Estudiantes',
+          child: BottomNavigationBar(
+            currentIndex: currentIndex,
+            onTap: controller.changeTab,
+            selectedItemColor: _AppColors.accent,
+            unselectedItemColor: _AppColors.textSecondary,
+            backgroundColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
+            selectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.group_rounded),
+                activeIcon: Icon(Icons.group_rounded),
+                label: 'Estudiantes',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.qr_code_2_rounded),
+                activeIcon: Icon(Icons.qr_code_2_rounded),
+                label: 'Recursos QR',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder_rounded),
-            activeIcon: Icon(Icons.folder_rounded),
-            label: 'Grupos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.qr_code_2_rounded),
-            activeIcon: Icon(Icons.qr_code_2_rounded),
-            label: 'Recursos QR',
-          ),
-        ],
-      ),
-    );
+        ),
+        floatingActionButton: currentIndex == 0
+            ? _AddFab(
+                onPressed: widget.onAgregarEstudiante,
+                maestroId: widget.maestroId,
+              )
+            : null,
+      );
+    });
   }
 
   Widget _buildEstudiantesTab(BuildContext context) {
@@ -105,10 +146,11 @@ class _DocenteScreenState extends State<DocenteScreen> {
       color: _AppColors.accent,
       child: Column(
         children: [
-          _Header(institucion: controller.profesor.institucion),
+          _Header(institucion: widget.profesor.institucion),
           _SearchBar(controller: controller.searchController),
           _ListHeader(
             cantidad: controller.estudiantesFiltrados.length,
+            onExportar: widget.onExportar,
           ),
           Expanded(child: _buildBody()),
         ],
@@ -157,9 +199,7 @@ class _DocenteScreenState extends State<DocenteScreen> {
       );
     }
 
-    return _EstudiantesList(
-      estudiantes: controller.estudiantesFiltrados,
-    );
+    return _EstudiantesList(estudiantes: controller.estudiantesFiltrados);
   }
 }
 
@@ -308,7 +348,7 @@ class _ListHeader extends StatelessWidget {
 }
 
 class _EstudiantesList extends StatelessWidget {
-  final List<EstudianteModel> estudiantes;
+  final List<Map<String, dynamic>> estudiantes;
 
   const _EstudiantesList({required this.estudiantes});
 
@@ -338,15 +378,20 @@ class _EstudiantesList extends StatelessWidget {
 }
 
 class _EstudianteCard extends StatelessWidget {
-  final EstudianteModel estudiante;
+  final Map<String, dynamic> estudiante;
   final VoidCallback? onTap;
 
   const _EstudianteCard({required this.estudiante, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final nombreCompleto =
-        '${estudiante.nombre ?? ''} ${estudiante.apellido ?? ''}'.trim();
+    final nombre = (estudiante['nombre'] ?? 'Sin nombre').toString();
+    final apellido = (estudiante['apellido'] ?? '').toString();
+    final nombreCompleto = '$nombre $apellido'.trim();
+    final identificacion = (estudiante['identificacion'] ?? '').toString();
+    final pin = (estudiante['pin'] ?? '0000').toString();
+    final avatarUrl = estudiante['avatarUrl']?.toString();
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -364,7 +409,8 @@ class _EstudianteCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _Avatar(nombre: estudiante.nombre ?? ''),
+            // Avatar
+            _Avatar(nombre: nombre, url: avatarUrl),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -380,7 +426,7 @@ class _EstudianteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'ID: ${estudiante.identificacion}',
+                    'ID: $identificacion',
                     style: const TextStyle(
                       fontSize: 12,
                       color: _AppColors.textSecondary,
@@ -389,7 +435,9 @@ class _EstudianteCard extends StatelessWidget {
                 ],
               ),
             ),
-            _PinBadge(pin: estudiante.pin ?? ''),
+
+            // PIN badge
+            _PinBadge(pin: 'K-$pin'),
           ],
         ),
       ),

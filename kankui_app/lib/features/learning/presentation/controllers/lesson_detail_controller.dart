@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/lessons_controller.dart';
 import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
+import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
@@ -56,25 +61,25 @@ class LessonDetailController extends GetxController {
       await _userRepo.updateRacha();
       await _userRepo.completarLeccion(categoria.id);
 
-      final estudiante = await _userRepo.getCurrentEstudiante();
-      final totalCompletadas = estudiante?.leccionesCompletadasTotal ?? 1;
-
       await _progressRepo.updateProgresoCategoria(
         usuarioId: usuario.id,
         categoriaId: categoria.id,
-        leccionesCompletadas: totalCompletadas,
+        leccionesCompletadas: 1,
         totalLecciones: 1,
       );
 
-      try {
-        final repo = EstudianteRepository(Supabase.instance.client);
-        await repo.actualizarGamificacion(
-          usuarioId: usuario.id,
-          xpSumar: xpGanado,
-          incrementarRacha: true,
-          leccionesSumar: 1,
-        );
-      } catch (_) {}
+      if (Get.isRegistered<HomeController>()) {
+        await Get.find<HomeController>().refreshLocalProgress();
+      }
+      if (Get.isRegistered<LessonsController>()) {
+        await Get.find<LessonsController>().refreshLocalProgress();
+      }
+
+      unawaited(
+        SyncService(Supabase.instance.client)
+            .syncProgressToSupabase()
+            .catchError((_) {}),
+      );
     } catch (e) {
       debugPrint('Error guardando progreso de lección: $e');
     }
@@ -126,7 +131,8 @@ class LessonDetailController extends GetxController {
             const SizedBox(height: 16),
             Text(
               'Has completado la lección de ${categoria.nombre}',
-              style: Get.textTheme.bodyLarge?.copyWith(color: AppColors.textoMedio),
+              style: Get.textTheme.bodyLarge
+                  ?.copyWith(color: AppColors.textoMedio),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -148,13 +154,13 @@ class LessonDetailController extends GetxController {
                     size: 28,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '+${vocablos.length * 10} XP',
-                    style: Get.textTheme.headlineMedium?.copyWith(
-                      color: AppColors.doradoSol,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                   Text(
+                     '+${vocablos.length * 10} XP',
+                     style: Get.textTheme.headlineMedium?.copyWith(
+                       color: AppColors.doradoSol,
+                       fontWeight: FontWeight.bold,
+                     ),
+                   ),
                 ],
               ),
             ),
@@ -225,10 +231,14 @@ class LessonDetailController extends GetxController {
                 minimumSize: const Size(double.infinity, 56),
                 side: const BorderSide(color: AppColors.terracota),
               ),
-              icon: const Icon(Icons.replay_rounded, color: AppColors.terracota),
-              label: Text('Repetir Lección', style: TextStyle(color: AppColors.terracota)),
+              icon:
+                  const Icon(Icons.replay_rounded, color: AppColors.terracota),
+              label: const Text('Repetir Lección',
+                  style: TextStyle(color: AppColors.terracota)),
             ),
-            TextButton(onPressed: () => Get.back(), child: const Text('Volver al Inicio')),
+            TextButton(
+                onPressed: () => Get.back(),
+                child: const Text('Volver al Inicio')),
           ],
         ),
       ),

@@ -26,15 +26,21 @@ class ContentRepository {
   Future<void> saveCategorias(List<CategoriaLocal> categorias) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var cat in categorias) {
+      batch.update(
+        'categoria',
+        cat.toMap(),
+        where: 'id = ?',
+        whereArgs: [cat.id],
+      );
       batch.insert(
         'categoria',
         cat.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -79,7 +85,7 @@ class ContentRepository {
   Future<void> savePalabras(List<PalabraLocal> palabras) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var palabra in palabras) {
       batch.insert(
         'palabra',
@@ -87,7 +93,7 @@ class ContentRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -122,7 +128,7 @@ class ContentRepository {
   Future<void> saveLecciones(List<LeccionLocal> lecciones) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var leccion in lecciones) {
       batch.insert(
         'leccion',
@@ -130,7 +136,7 @@ class ContentRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -175,7 +181,7 @@ class ContentRepository {
   Future<void> savePreguntas(List<PreguntaLocal> preguntas) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var pregunta in preguntas) {
       batch.insert(
         'pregunta',
@@ -183,7 +189,7 @@ class ContentRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -218,15 +224,21 @@ class ContentRepository {
   Future<void> saveRetos(List<RetoLocal> retos) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var reto in retos) {
+      batch.update(
+        'reto',
+        reto.toMap(),
+        where: 'id = ?',
+        whereArgs: [reto.id],
+      );
       batch.insert(
         'reto',
         reto.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.ignore,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -248,7 +260,7 @@ class ContentRepository {
   Future<void> updateSyncMetadata(String tabla) async {
     final db = await _db.database;
     final existing = await getSyncMetadata(tabla);
-    
+
     await db.insert(
       'sync_metadata',
       {
@@ -264,7 +276,7 @@ class ContentRepository {
   Future<bool> needsSync(String tabla, {int hoursThreshold = 24}) async {
     final metadata = await getSyncMetadata(tabla);
     if (metadata == null || metadata.ultimaSync == null) return true;
-    
+
     final lastSync = DateTime.parse(metadata.ultimaSync!);
     final now = DateTime.now();
     return now.difference(lastSync).inHours >= hoursThreshold;

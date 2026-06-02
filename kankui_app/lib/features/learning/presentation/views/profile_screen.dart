@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
 import 'package:kankui_app/shared/data/user_progress.dart';
@@ -12,22 +14,27 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: CustomScrollView(
-        slivers: [
-          // Header del perfil
-          SliverToBoxAdapter(child: _buildHeader(context)),
+      child: RefreshIndicator(
+        color: AppColors.terracota,
+        onRefresh: Get.find<HomeController>().refreshDashboard,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Header del perfil
+            SliverToBoxAdapter(child: _buildHeader(context)),
 
-          // Estadísticas detalladas
-          SliverToBoxAdapter(child: _buildEstadisticas(context)),
+            // Estadísticas detalladas
+            SliverToBoxAdapter(child: _buildEstadisticas(context)),
 
-          // Sección de configuración
-          SliverToBoxAdapter(child: _buildConfiguracion(context)),
+            // Sección de configuración
+            SliverToBoxAdapter(child: _buildConfiguracion(context)),
 
-          // Sobre la app
-          SliverToBoxAdapter(child: _buildSobreLaApp(context)),
+            // Sobre la app
+            SliverToBoxAdapter(child: _buildSobreLaApp(context)),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
       ),
     );
   }
@@ -458,7 +465,7 @@ class ProfileScreen extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          Row(
+          const Row(
             children: [
               Expanded(
                 child: Text(

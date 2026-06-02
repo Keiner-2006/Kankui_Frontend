@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:kankui_app/features/quiz/presentation/controllers/quiz_question_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/lessons_controller.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/features/quiz/domain/models/pregunta_quiz_model.dart';
+import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart';
+import 'package:kankui_app/shared/data/local/progress_repository.dart';
+import 'package:kankui_app/shared/data/local/user_repository.dart';
+import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'package:kankui_app/shared/ui/widgets/opcion_respuesta_widget.dart';
 
 class QuizQuestionScreen extends StatefulWidget {
@@ -12,8 +18,18 @@ class QuizQuestionScreen extends StatefulWidget {
   State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
-class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
-  late final QuizQuestionController controller;
+class _QuizQuestionScreenState extends State<QuizQuestionScreen>
+    with SingleTickerProviderStateMixin {
+  final QuizRepository _quizRepository = QuizRepository();
+  final ProgressRepository _progressRepo = Get.find();
+  late List<PreguntaQuizModel> _preguntas;
+  late List<int?> _respuestasUsuario;
+  late int _preguntaIndex;
+  late AnimationController _timerController;
+  late Animation<double> _timerAnimation;
+  int? _selectedOptionIndex;
+  bool _mostrandoResultado = false;
+  bool _respondida = false;
 
   @override
   void initState() {
@@ -34,11 +50,46 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
             icon: const Icon(Icons.close_rounded),
             onPressed: controller.confirmExit,
           ),
-          title: Text(
-            controller.categoriaNombre ?? 'Quiz',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppColors.terracota,
-                  fontWeight: FontWeight.bold,
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Barra de tiempo
+            _buildBarraTiempo(),
+            const SizedBox(height: 8),
+
+            // Progreso general
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: LinearProgressIndicator(
+                value: (_preguntaIndex + 1) / _preguntas.length,
+                backgroundColor: AppColors.cremaOscuro,
+                color: AppColors.terracota,
+                minHeight: 4,
+              ),
+            ),
+
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Enunciado
+                    _buildEnunciado(pregunta),
+                    const SizedBox(height: 24),
+
+                    // Opciones de respuesta
+                    _buildOpcionesRespuesta(pregunta),
+
+                    // Pista
+                    if (pregunta.pista != null && !_respondida)
+                      _buildPista(pregunta.pista!),
+
+                    // Resultado
+                    if (_mostrandoResultado) _buildResultadoPregunta(pregunta),
+                  ],
                 ),
           ),
           actions: [
@@ -57,6 +108,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                     ),
               ),
             ),
+
+            // Botón siguiente
+            if (_respondida) _buildBotonSiguiente(),
           ],
         ),
         body: SafeArea(
@@ -148,9 +202,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                   ? 'Palabra Kankuama → Significado'
                   : 'Significado → Palabra Kankuama',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: pregunta.tipo == TipoPreguntaQuiz.kankuamaASignificado
-                        ? AppColors.verdeSelva
-                        : AppColors.terracota,
+                    color:
+                        pregunta.tipo == TipoPreguntaQuiz.kankuamaASignificado
+                            ? AppColors.verdeSelva
+                            : AppColors.terracota,
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -164,7 +219,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                   color: AppColors.terracota.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.help_rounded,
                   color: AppColors.terracota,
                   size: 24,
@@ -226,7 +281,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.lightbulb_outline_rounded, color: AppColors.doradoSol),
+          const Icon(Icons.lightbulb_outline_rounded,
+              color: AppColors.doradoSol),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -316,6 +372,411 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> {
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
+        ),
+      ),
+    );
+  }
+
+  void _seleccionarRespuesta(int index) {
+    setState(() {
+      _selectedOptionIndex = index;
+      _respondida = true;
+      _timerController.stop();
+    });
+
+    _respuestasUsuario[_preguntaIndex] = index;
+
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _mostrandoResultado = true;
+        });
+      }
+    });
+  }
+
+  Future<void> _siguientePregunta() async {
+    if (_preguntaIndex < _preguntas.length - 1) {
+      setState(() {
+        _preguntaIndex++;
+        _mostrandoResultado = false;
+        _respondida = false;
+        _selectedOptionIndex = null;
+        _timerController.reset();
+        _timerController.forward();
+      });
+    } else {
+      await _finalizarQuiz();
+    }
+  }
+
+  Future<void> _finalizarQuiz() async {
+    _timerController.stop();
+
+    final respuestasValidas = _respuestasUsuario.where((r) => r != null).length;
+    final correctas = _quizRepository.calcularRespuestasCorrectas(
+      _preguntas,
+      _respuestasUsuario.where((r) => r != null).cast<int>().toList(),
+    );
+
+    final resultado = {
+      'total': _preguntas.length,
+      'respondidas': respuestasValidas,
+      'correctas': correctas,
+      'puntos': correctas * 10,
+      'porcentaje': (correctas / _preguntas.length * 100).round(),
+    };
+
+    await _guardarProgreso(resultado);
+
+    if (!mounted) return;
+
+    final mostroResumen = Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QuizResumenScreen(
+          reto: widget.reto,
+          resultado: resultado,
+          preguntas: _preguntas,
+          respuestasUsuario: _respuestasUsuario,
+        ),
+      ),
+    );
+
+    mostroResumen.then((value) {
+      if (value == true && mounted) {
+        Get.until((route) =>
+            route.settings.name == '/lessons' ||
+            route.settings.name == '/home' ||
+            route.settings.name == '/');
+      }
+    });
+  }
+
+  Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
+    try {
+      final userRepo = UserRepository();
+      final usuario = await userRepo.getCurrentUser();
+      if (usuario == null) return;
+
+      await _progressRepo.saveResultadoQuiz(
+        usuarioId: usuario.id,
+        retoId: widget.reto.id,
+        retoNombre: widget.reto.nombre,
+        respuestas: _respuestasUsuario.whereType<int>().toList(),
+        puntaje: resultado['puntos'] as int,
+      );
+      await _progressRepo.completarReto(
+        usuarioId: usuario.id,
+        retoId: widget.reto.id,
+        retoNombre: widget.reto.nombre,
+        puntosObtenidos: resultado['puntos'] as int,
+      );
+
+      final correctas = resultado['correctas'] as int;
+      final xpGanado = correctas * 10;
+
+      await userRepo.addXP(xpGanado);
+      await userRepo.updateRacha();
+
+      if (widget.reto.leccionId != null) {
+        await userRepo.completarLeccion(widget.reto.leccionId!);
+      }
+
+      if (Get.isRegistered<HomeController>()) {
+        await Get.find<HomeController>().refreshLocalProgress();
+      }
+      if (Get.isRegistered<LessonsController>()) {
+        await Get.find<LessonsController>().refreshLocalProgress();
+      }
+
+      unawaited(
+        SyncService(Supabase.instance.client)
+            .syncProgressToSupabase()
+            .catchError((_) {}),
+      );
+    } catch (e) {
+      debugPrint('Error guardando progreso del quiz: $e');
+    }
+  }
+
+  void _mostrarConfirmacionSalida() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        title: const Text('¿Salir del quiz?'),
+        content: const Text('Tu progreso actual no se guardará.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.terracota,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Salir'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pantalla de resumen final del Quiz
+class QuizResumenScreen extends StatelessWidget {
+  final RetoQuizModel reto;
+  final Map<String, dynamic> resultado;
+  final List<PreguntaQuizModel> preguntas;
+  final List<int?> respuestasUsuario;
+
+  const QuizResumenScreen({
+    super.key,
+    required this.reto,
+    required this.resultado,
+    required this.preguntas,
+    required this.respuestasUsuario,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final correctas = resultado['correctas'] as int;
+    final total = resultado['total'] as int;
+    final porcentaje = resultado['porcentaje'] as int;
+    final puntos = resultado['puntos'] as int;
+
+    return Scaffold(
+      backgroundColor: AppColors.crema,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: const SizedBox(),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: correctas >= total * 0.7
+                      ? AppColors.verdeSelva.withValues(alpha: 0.15)
+                      : AppColors.terracota.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  correctas >= total * 0.7
+                      ? Icons.celebration_rounded
+                      : Icons.school_rounded,
+                  color: correctas >= total * 0.7
+                      ? AppColors.verdeSelva
+                      : AppColors.terracota,
+                  size: 80,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                '¡Reto Completado!',
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      color: AppColors.textoOscuro,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Has demostrado tu conocimiento en kankuama',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.textoMedio,
+                    ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  _buildMetricCard(
+                    context,
+                    label: 'Correctas',
+                    value: '$correctas/$total',
+                    color: AppColors.verdeSelva,
+                  ),
+                  const SizedBox(width: 12),
+                  _buildMetricCard(
+                    context,
+                    label: 'Puntos',
+                    value: '$puntos',
+                    color: AppColors.doradoSol,
+                  ),
+                  const SizedBox(width: 12),
+                  _buildMetricCard(
+                    context,
+                    label: 'Precisión',
+                    value: '$porcentaje%',
+                    color: AppColors.terracota,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Revisión de Respuestas',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: AppColors.textoOscuro,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...List.generate(preguntas.length, (index) {
+                      final pregunta = preguntas[index];
+                      final respuestaUsuario = respuestasUsuario[index];
+                      final respondida = respuestaUsuario != null;
+                      final correcta = respondida &&
+                          respuestaUsuario == pregunta.respuestaCorrectaIndex;
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: correcta
+                                    ? AppColors.verdeSelva
+                                        .withValues(alpha: 0.2)
+                                    : AppColors.terracota
+                                        .withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                correcta ? Icons.check : Icons.close,
+                                color: correcta
+                                    ? AppColors.verdeSelva
+                                    : AppColors.terracota,
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Pregunta ${index + 1}: ${pregunta.enunciado}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.textoOscuro,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Tu respuesta: ${respondida ? pregunta.opciones[respuestaUsuario] : "No respondida"}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: respondida
+                                              ? (correcta
+                                                  ? AppColors.verdeSelva
+                                                  : AppColors.terracota)
+                                              : AppColors.textoClaro,
+                                        ),
+                                  ),
+                                  if (!correcta && respondida)
+                                    Text(
+                                      'Correcta: ${pregunta.respuestaCorrecta}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.verdeSelva,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                  backgroundColor: AppColors.terracota,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+                icon: const Icon(Icons.arrow_back_rounded),
+                label: const Text('Volver al Inicio'),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textoClaro,
+                  ),
+            ),
+          ],
         ),
       ),
     );

@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/controllers/kankuama_info_controller.dart';
 
 class KankuamaInfoScreen extends StatefulWidget {
-  const KankuamaInfoScreen({super.key});
+  final String qrCodeId;
+
+  const KankuamaInfoScreen({super.key, required this.qrCodeId});
 
   @override
   State<KankuamaInfoScreen> createState() => _KankuamaInfoScreenState();
@@ -20,11 +22,32 @@ class _KankuamaInfoScreenState extends State<KankuamaInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return Scaffold(
-          backgroundColor: Colors.white,
-          body: Center(
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: Colors.brown),
+              SizedBox(height: 20),
+              Text('Descifrando el conocimiento...', style: TextStyle(color: Colors.brown)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_info == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('QR Desconocido'),
+          backgroundColor: Colors.brown[800],
+          foregroundColor: Colors.white,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: const [

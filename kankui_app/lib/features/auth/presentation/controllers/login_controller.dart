@@ -77,9 +77,12 @@ class LoginController extends GetxController {
       mergedData['xp_hoy'] = estudiante['xp_hoy'] ?? 0;
       mergedData['racha_dias'] = estudiante['racha_dias'] ?? 0;
       mergedData['lecciones_completadas'] =
-          estudiante['lecciones_completadas_total'] ?? 0;
+          estudiante['lecciones_completadas_total'] ??
+              estudiante['lecciones_completadas'] ??
+              0;
       mergedData['escaneos_exitosos'] = estudiante['escaneos_exitosos'] ?? 0;
-      mergedData['logros'] = estudiante['logros'] ?? [];
+      mergedData['logros'] =
+          estudiante['logros_desbloqueados'] ?? estudiante['logros'] ?? [];
 
       final usuarioModel = UsuarioModel.fromJson(mergedData);
 
@@ -92,24 +95,31 @@ class LoginController extends GetxController {
         institucionId: usuarioModel.institucionId,
       ));
 
-      await _userRepo.saveEstudiante(EstudianteLocal(
-        id: estudiante['id'],
-        usuarioId: usuarioModel.id,
-        curso: estudiante['curso'],
-        grupo: estudiante['grupo'],
-        promedio: (estudiante['promedio'] ?? 0).toDouble(),
-        pin: estudiante['pin'],
-        maestroId: estudiante['maestro_id'],
-        xpTotal: estudiante['xp_total'] ?? 0,
-        xpHoy: estudiante['xp_hoy'] ?? 0,
-        rachaDias: estudiante['racha_dias'] ?? 0,
-        ultimaActividad: estudiante['ultima_actividad'],
-        leccionesCompletadasTotal: estudiante['lecciones_completadas_total'] ?? 0,
-        escaneosExitosos: estudiante['escaneos_exitosos'] ?? 0,
-        leccionesDesbloqueadas:
-            List<String>.from(estudiante['lecciones_desbloqueadas'] ?? ['leccion_1']),
-        logrosDesbloqueados: List<String>.from(estudiante['logros'] ?? []),
-      ));
+      await _userRepo.saveEstudiante(
+        EstudianteLocal(
+          id: estudiante['id'],
+          usuarioId: usuarioModel.id,
+          curso: estudiante['curso'],
+          grupo: estudiante['grupo'],
+          promedio: (estudiante['promedio'] ?? 0).toDouble(),
+          pin: estudiante['pin'],
+          maestroId: estudiante['maestro_id'],
+          xpTotal: estudiante['xp_total'] ?? 0,
+          xpHoy: estudiante['xp_hoy'] ?? 0,
+          rachaDias: estudiante['racha_dias'] ?? 0,
+          ultimaActividad: estudiante['ultima_actividad'],
+          leccionesCompletadasTotal:
+              estudiante['lecciones_completadas_total'] ??
+                  estudiante['lecciones_completadas'] ??
+                  0,
+          escaneosExitosos: estudiante['escaneos_exitosos'] ?? 0,
+          leccionesDesbloqueadas: List<String>.from(
+              estudiante['lecciones_desbloqueadas'] ?? ['leccion_1']),
+          logrosDesbloqueados: List<String>.from(
+              estudiante['logros_desbloqueados'] ?? estudiante['logros'] ?? []),
+        ),
+        preserveLocalProgress: true,
+      );
 
       _session.loginEstudiante(usuarioModel);
       await NotificationService.showWelcome(usuarioModel.nombre);

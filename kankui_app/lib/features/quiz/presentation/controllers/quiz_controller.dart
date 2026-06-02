@@ -16,13 +16,15 @@ class QuizController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    final args = Get.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      categoria = args['categoria'] as CategoriaModel?;
-      leccionId = args['leccionId'] as String?;
-      cantidadPreguntas = args['cantidadPreguntas'] as int?;
-      desdeLeccion = args['desdeLeccion'] as bool? ?? false;
-      vocablosLeccion = args['vocablosLeccion'] as List<Vocablo>?;
+    final args = Get.arguments;
+    if (args is Map<String, dynamic>) {
+      initialize(
+        categoria: args['categoria'] as CategoriaModel?,
+        leccionId: args['leccionId'] as String?,
+        cantidadPreguntas: args['cantidadPreguntas'] as int?,
+        desdeLeccion: args['desdeLeccion'] as bool? ?? false,
+        vocablosLeccion: args['vocablosLeccion'] as List<Vocablo>?,
+      );
     }
   }
 
@@ -49,7 +51,9 @@ class QuizController extends GetxController {
       return;
     }
 
-    if (desdeLeccion && vocablosLeccion != null && vocablosLeccion!.isNotEmpty) {
+    if (desdeLeccion &&
+        vocablosLeccion != null &&
+        vocablosLeccion!.isNotEmpty) {
       final preguntas = _quizRepository.generarPreguntasDeLeccion(
         vocablos: vocablosLeccion!,
       );

@@ -26,35 +26,41 @@ class LessonsController extends GetxController {
       final data = await _categoriaRepo.getCategorias();
       categorias.assignAll(data);
 
-      final estudiante = await _userRepo.getCurrentEstudiante();
-      if (estudiante != null) {
-        userProgress.value = UserProgress(
-          xpTotal: estudiante.xpTotal,
-          xpHoy: estudiante.xpHoy,
-          rachaDias: estudiante.rachaDias,
-          leccionesCompletadas: estudiante.leccionesCompletadasTotal,
-          escaneoExitosos: estudiante.escaneosExitosos,
-          leccionesDesbloqueadas: estudiante.leccionesDesbloqueadas,
-          logrosDesbloqueados: estudiante.logrosDesbloqueados,
-          ultimaActividad: estudiante.ultimaActividad != null
-              ? DateTime.tryParse(estudiante.ultimaActividad!)
-              : null,
-        );
-
-        final usuario = await _userRepo.getCurrentUser();
-        if (usuario != null) {
-          final progresos = await _progressRepo.getProgresoCategoriasUsuario(usuario.id);
-          for (var p in progresos) {
-            if (p.totalLecciones > 0) {
-              progresoCategorias[p.categoriaId] =
-                  p.leccionesCompletadas / p.totalLecciones;
-            }
-          }
-        }
-      }
+      await refreshLocalProgress();
     } catch (_) {}
 
     loading.value = false;
+  }
+
+  Future<void> refreshLocalProgress() async {
+    final estudiante = await _userRepo.getCurrentEstudiante();
+    if (estudiante == null) return;
+
+    userProgress.value = UserProgress(
+      xpTotal: estudiante.xpTotal,
+      xpHoy: estudiante.xpHoy,
+      rachaDias: estudiante.rachaDias,
+      leccionesCompletadas: estudiante.leccionesCompletadasTotal,
+      escaneoExitosos: estudiante.escaneosExitosos,
+      leccionesDesbloqueadas: estudiante.leccionesDesbloqueadas,
+      logrosDesbloqueados: estudiante.logrosDesbloqueados,
+      ultimaActividad: estudiante.ultimaActividad != null
+          ? DateTime.tryParse(estudiante.ultimaActividad!)
+          : null,
+    );
+
+    final usuario = await _userRepo.getCurrentUser();
+    if (usuario == null) return;
+
+    progresoCategorias.clear();
+    final progresos =
+        await _progressRepo.getProgresoCategoriasUsuario(usuario.id);
+    for (var p in progresos) {
+      if (p.totalLecciones > 0) {
+        progresoCategorias[p.categoriaId] =
+            p.leccionesCompletadas / p.totalLecciones;
+      }
+    }
   }
 
   double calcularProgresoCategoria(String categoriaId) {

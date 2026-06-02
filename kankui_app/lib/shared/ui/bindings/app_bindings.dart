@@ -40,7 +40,7 @@ class AppBindings extends Bindings {
     Get.put(DocenteService(), permanent: true);
     Get.put(AudioService(), permanent: true);
     Get.put(UserRepository(), permanent: true);
-    Get.lazyPut(() => ProgressRepository());
+    Get.put(ProgressRepository(), permanent: true);
 
     Get.lazyPut(() => CategoriaRepository(supabase));
     Get.lazyPut(() => UsuarioRepository(supabase));

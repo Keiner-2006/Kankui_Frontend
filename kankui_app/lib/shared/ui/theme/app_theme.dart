@@ -143,13 +143,13 @@ class AppTheme {
       ),
       
       // Bottom Navigation
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: Colors.white,
         selectedItemColor: AppColors.terracota,
         unselectedItemColor: AppColors.textoClaro,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: const TextStyle(
+        selectedLabelStyle: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
@@ -165,7 +165,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: AppColors.cremaOscuro, width: 2),
+          borderSide: const BorderSide(color: AppColors.cremaOscuro, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),

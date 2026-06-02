@@ -73,7 +73,7 @@ class NotificationService {
       priority: Priority.high,
     );
 
-    final details = NotificationDetails(android: androidDetails);
+    const details = NotificationDetails(android: androidDetails);
 
     await _notifications.show(
       id,

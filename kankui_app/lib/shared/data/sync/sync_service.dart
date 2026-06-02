@@ -151,9 +151,28 @@ class SyncService {
   // ============================================
 
   Future<void> syncProgressToSupabase() async {
+    await _syncEstudiante();
     await _syncProgresoCategoria();
     await _syncProgresoReto();
     await _syncResultados();
+  }
+
+  Future<void> _syncEstudiante() async {
+    final estudiante = await _userRepo.getCurrentEstudiante();
+    if (estudiante == null) return;
+
+    try {
+      await _supabase.from('estudiante').update({
+        'xp_total': estudiante.xpTotal,
+        'xp_hoy': estudiante.xpHoy,
+        'racha_dias': estudiante.rachaDias,
+        'ultima_actividad': estudiante.ultimaActividad,
+        'lecciones_completadas_total': estudiante.leccionesCompletadasTotal,
+        'escaneos_exitosos': estudiante.escaneosExitosos,
+        'lecciones_desbloqueadas': estudiante.leccionesDesbloqueadas,
+        'logros_desbloqueados': estudiante.logrosDesbloqueados,
+      }).eq('id', estudiante.id);
+    } catch (_) {}
   }
 
   Future<void> _syncProgresoCategoria() async {

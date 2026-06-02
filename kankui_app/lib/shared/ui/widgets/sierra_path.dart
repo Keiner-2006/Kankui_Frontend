@@ -6,14 +6,13 @@ import 'package:kankui_app/features/learning/domain/models/categoria_model.dart'
 /// Widget que muestra el camino de la Sierra Nevada
 /// Representación visual del progreso del usuario a través de las lecciones
 class SierraPath extends StatelessWidget {
-  
-  final int leccionesCompletadas;
   final List<CategoriaModel> categorias;
+  final Map<String, double> progresoCategorias;
 
   const SierraPath({
-     super.key,
-    required this.leccionesCompletadas,
+    super.key,
     required this.categorias,
+    required this.progresoCategorias,
   });
 
   @override
@@ -22,7 +21,7 @@ class SierraPath extends StatelessWidget {
       height: 400,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: CustomPaint(
-        painter: _SierraPathPainter(),
+        painter: _SierraPathPainter(progreso: _progresoTotal),
         child: Stack(
           children: [
             // Nodos de las lecciones
@@ -35,47 +34,70 @@ class SierraPath extends StatelessWidget {
 
   List<Widget> _buildLessonNodes(BuildContext context) {
     final nodes = <Widget>[];
-    
+
     // Si no hay categorías de la DB, usar las hardcoded por defecto para no romper el UI
-    final List<Map<String, dynamic>> lecciones = categorias.isEmpty 
-      ? _leccionesData 
-      : categorias.asMap().entries.map((entry) {
-          int index = entry.key;
-          CategoriaModel cat = entry.value;
-          // Reutilizar coordenadas del camino predefinido si es posible
-          final defaultData = index < _leccionesData.length ? _leccionesData[index] : _leccionesData.last;
-          return {
-            'id': cat.id,
-            'nombre': cat.nombre,
-            'icono': cat.icono ?? 'espiral',
-            'x': defaultData['x'],
-            'y': defaultData['y'],
-          };
-        }).toList();
+    final List<Map<String, dynamic>> lecciones = categorias.isEmpty
+        ? _leccionesData
+        : categorias.asMap().entries.map((entry) {
+            int index = entry.key;
+            CategoriaModel cat = entry.value;
+            // Reutilizar coordenadas del camino predefinido si es posible
+            final defaultData = index < _leccionesData.length
+                ? _leccionesData[index]
+                : _leccionesData.last;
+            return {
+              'id': cat.id,
+              'nombre': cat.nombre,
+              'icono': cat.icono ?? 'espiral',
+              'x': defaultData['x'],
+              'y': defaultData['y'],
+            };
+          }).toList();
 
-   for (int i = 0; i < lecciones.length; i++) {
-  final leccion = lecciones[i];
+    for (int i = 0; i < lecciones.length; i++) {
+      final leccion = lecciones[i];
+      final categoriaId = leccion['id'] as String;
+      final isCompletada = _isCategoriaCompletada(categoriaId);
+      final isDesbloqueada =
+          i == 0 || _isCategoriaCompletada(lecciones[i - 1]['id'] as String);
+      final isCurrent = isDesbloqueada && !isCompletada;
 
-  final isCompletada = i < leccionesCompletadas;
-  final isDesbloqueada = i <= leccionesCompletadas;
-  final isCurrent = i == leccionesCompletadas;
-
-  nodes.add(
-    Positioned(
-      left: leccion['x'] as double,
-      top: leccion['y'] as double,
-      child: _LessonNode(
-        nombre: leccion['nombre'] as String,
-        icono: leccion['icono'] as String,
-        isDesbloqueada: isDesbloqueada,
-        isCompletada: isCompletada,
-        isCurrent: isCurrent,
-        onTap: isDesbloqueada ? () {} : null,
-      ),
-    ),
-  );
-}
+      nodes.add(
+        Positioned(
+          left: leccion['x'] as double,
+          top: leccion['y'] as double,
+          child: _LessonNode(
+            nombre: leccion['nombre'] as String,
+            icono: leccion['icono'] as String,
+            isDesbloqueada: isDesbloqueada,
+            isCompletada: isCompletada,
+            isCurrent: isCurrent,
+            onTap: isDesbloqueada ? () {} : null,
+          ),
+        ),
+      );
+    }
     return nodes;
+  }
+
+  bool _isCategoriaCompletada(String categoriaId) {
+    return (progresoCategorias[categoriaId] ?? 0) >= 1;
+  }
+
+  double get _progresoTotal {
+    final total =
+        categorias.isEmpty ? _leccionesData.length : categorias.length;
+    if (total == 0) return 0;
+
+    final completadas =
+        (categorias.isEmpty ? _leccionesData : categorias).where((categoria) {
+      final id = categoria is CategoriaModel
+          ? categoria.id
+          : (categoria as Map<String, dynamic>)['id'] as String;
+      return _isCategoriaCompletada(id);
+    }).length;
+
+    return completadas / total;
   }
 }
 
@@ -211,6 +233,10 @@ class _LessonNode extends StatelessWidget {
 }
 
 class _SierraPathPainter extends CustomPainter {
+  final double progreso;
+
+  const _SierraPathPainter({required this.progreso});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -222,37 +248,43 @@ class _SierraPathPainter extends CustomPainter {
     // Dibujar el camino que conecta las lecciones
     final path = Path();
 
-    // Camino serpenteante que sube la sierra
-    path.moveTo(size.width * 0.15 + 30, 50);
-    path.quadraticBezierTo(
-      size.width * 0.3,
-      80,
-      size.width * 0.55 + 30,
-      90,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      100,
-      size.width * 0.25 + 30,
-      160,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.1,
-      180,
-      size.width * 0.6 + 30,
-      230,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.85,
-      250,
-      size.width * 0.35 + 30,
-      310,
-    );
+    _buildPath(path, size);
 
     canvas.drawPath(path, paint);
 
+    final progressPaint = Paint()
+      ..color = AppColors.verdeSelva
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    for (final metric in path.computeMetrics()) {
+      canvas.drawPath(
+        metric.extractPath(0, metric.length * progreso.clamp(0, 1)),
+        progressPaint,
+      );
+    }
+
     // Dibujar montañas de fondo
     _drawMountains(canvas, size);
+  }
+
+  void _buildPath(Path path, Size size) {
+    for (int i = 0; i < _leccionesData.length; i++) {
+      final node = _leccionesData[i];
+      final x = node['x'] as double;
+      final y = node['y'] as double;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        final prev = _leccionesData[i - 1];
+        final prevX = prev['x'] as double;
+        final prevY = prev['y'] as double;
+        final midX = (prevX + x) / 2;
+        final midY = (prevY + y) / 2 + 15;
+        path.quadraticBezierTo(prevX + 20, prevY + 30, midX, midY);
+        path.quadraticBezierTo(x - 20, y - 10, x, y);
+      }
+    }
   }
 
   void _drawMountains(Canvas canvas, Size size) {
@@ -291,51 +323,54 @@ class _SierraPathPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SierraPathPainter oldDelegate) {
+    return oldDelegate.progreso != progreso;
+  }
 }
 
-// Datos de las lecciones para el mapa (Coordenadas predefinidas)
+// Datos de las lecciones para el mapa (Coordenadas alineadas con el path painter)
+// El path se construye con size.width relativo, estos valores están calibrados para ~360px de ancho
 final List<Map<String, dynamic>> _leccionesData = [
   {
     'id': 'leccion_1',
     'nombre': 'Saludos',
     'icono': 'espiral',
-    'x': 20.0,
-    'y': 20.0
+    'x': 70.0,
+    'y': 40.0
   },
   {
     'id': 'leccion_2',
     'nombre': 'Familia',
     'icono': 'mochila',
-    'x': 180.0,
-    'y': 60.0
+    'x': 220.0,
+    'y': 85.0
   },
   {
     'id': 'leccion_3',
     'nombre': 'Naturaleza',
     'icono': 'sierra',
-    'x': 50.0,
-    'y': 130.0
+    'x': 110.0,
+    'y': 150.0
   },
   {
     'id': 'leccion_4',
     'nombre': 'Sagrado',
     'icono': 'poporo',
-    'x': 200.0,
-    'y': 200.0
+    'x': 240.0,
+    'y': 220.0
   },
   {
     'id': 'leccion_5',
-    'nombre': 'Números',
+    'nombre': 'Numeros',
     'icono': 'tejido',
-    'x': 80.0,
-    'y': 280.0
+    'x': 150.0,
+    'y': 300.0
   },
   {
     'id': 'leccion_6',
     'nombre': 'Colores',
     'icono': 'hoja',
-    'x': 220.0,
-    'y': 330.0
+    'x': 300.0,
+    'y': 340.0
   },
 ];

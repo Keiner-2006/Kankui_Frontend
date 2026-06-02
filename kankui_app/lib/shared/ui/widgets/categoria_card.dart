@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
 import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
-import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
 
 /// Tarjeta de categoría de vocablos
 class CategoriaCard extends StatelessWidget {
@@ -189,6 +188,12 @@ class CategoriaCard extends StatelessWidget {
         return KankuiIcons.mochila(size: size, color: color);
       case 'hoja':
         return KankuiIcons.hoja(size: size, color: color);
+      case 'naturaleza':
+        return KankuiIcons.naturaleza(size: size, color: color);
+      case 'animales':
+        return KankuiIcons.animales(size: size, color: color);
+      case 'colores':
+        return KankuiIcons.colores(size: size, color: color);
       default:
         return KankuiIcons.espiral(size: size, color: color);
     }

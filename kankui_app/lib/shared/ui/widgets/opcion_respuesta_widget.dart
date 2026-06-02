@@ -91,13 +91,13 @@ class OpcionRespuestaWidget extends StatelessWidget {
                 ),
                 // Icono de estado
                 if (esCorrecta)
-                  Icon(
+                  const Icon(
                     Icons.check_circle_rounded,
                     color: AppColors.verdeSelva,
                     size: 24,
                   )
                 else if (esIncorrecta)
-                  Icon(
+                  const Icon(
                     Icons.cancel_rounded,
                     color: AppColors.terracota,
                     size: 24,

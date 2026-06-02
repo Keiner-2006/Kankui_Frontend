@@ -68,12 +68,92 @@ class KankuiIcons {
       painter: _TejidoPainter(color ?? AppColors.terracota),
     );
   }
+
+  static Widget naturaleza({double size = 24, Color? color}) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _NaturalezaPainter(color ?? AppColors.verdeSelva),
+    );
+  }
+
+  static Widget animales({double size = 24, Color? color}) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _AnimalesPainter(color ?? AppColors.terracotaDark),
+    );
+  }
+
+  static Widget colores({double size = 24, Color? color}) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _ColoresPainter(color ?? AppColors.doradoSol),
+    );
+  }
+}
+
+class _NaturalezaPainter extends CustomPainter {
+  final Color color;
+  _NaturalezaPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = size.width * 0.07..strokeCap = StrokeCap.round;
+    final path = Path();
+    path.moveTo(size.width * 0.5, size.height * 0.15);
+    path.quadraticBezierTo(size.width * 0.15, size.height * 0.45, size.width * 0.25, size.height * 0.85);
+    path.quadraticBezierTo(size.width * 0.4, size.height * 0.6, size.width * 0.5, size.height * 0.9);
+    path.quadraticBezierTo(size.width * 0.6, size.height * 0.6, size.width * 0.75, size.height * 0.85);
+    path.quadraticBezierTo(size.width * 0.85, size.height * 0.45, size.width * 0.5, size.height * 0.15);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AnimalesPainter extends CustomPainter {
+  final Color color;
+  _AnimalesPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = size.width * 0.07..strokeCap = StrokeCap.round;
+    final path = Path();
+    path.moveTo(size.width * 0.2, size.height * 0.35);
+    path.lineTo(size.width * 0.35, size.height * 0.2);
+    path.lineTo(size.width * 0.5, size.height * 0.35);
+    path.lineTo(size.width * 0.5, size.height * 0.7);
+    path.quadraticBezierTo(size.width * 0.5, size.height * 0.85, size.width * 0.35, size.height * 0.9);
+    path.lineTo(size.width * 0.2, size.height * 0.85);
+    path.quadraticBezierTo(size.width * 0.2, size.height * 0.75, size.width * 0.2, size.height * 0.35);
+    canvas.drawPath(path, paint);
+    canvas.drawCircle(Offset(size.width * 0.35, size.height * 0.35), size.width * 0.06, Paint()..color = color..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _ColoresPainter extends CustomPainter {
+  final Color color;
+  _ColoresPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = size.width * 0.07..strokeCap = StrokeCap.round;
+    canvas.drawCircle(Offset(size.width * 0.38, size.height * 0.5), size.width * 0.28, paint);
+    final paint2 = Paint()..color = color.withValues(alpha: 0.6)..style = PaintingStyle.stroke..strokeWidth = size.width * 0.06;
+    canvas.drawCircle(Offset(size.width * 0.62, size.height * 0.5), size.width * 0.28, paint2);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _MochilaPainter extends CustomPainter {
   final Color color;
   _MochilaPainter(this.color);
-  
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()

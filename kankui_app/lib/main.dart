@@ -16,6 +16,7 @@ import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/shared/services/service_locator.dart';
 import 'package:kankui_app/shared/data/sync/sync_service.dart';
+import 'package:kankui_app/features/auth/presentation/views/onboarding_screen.dart';
 import 'shared/ui/bindings/app_bindings.dart';
 import 'shared/core/constants/app_constants.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -97,74 +98,5 @@ class _RootState extends State<Root> {
     }
 
     return const LoginScreen();
-  }
-}
-
-class OnboardingScreen extends StatefulWidget {
-  final VoidCallback? onFinish;
-  const OnboardingScreen({super.key, this.onFinish});
-
-  @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
-}
-
-class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController();
-  int _currentPage = 0;
-
-  void _goToPage(int page) {
-    _pageController.animateToPage(page, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
-  }
-
-  void _nextPage() {
-    _goToPage(_currentPage + 1);
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) => setState(() => _currentPage = index),
-        children: const [
-          _OnboardingPage(title: "Bienvenido a Kankui", description: "Aprende vocabulario de forma divertida", icon: Icons.school),
-          _OnboardingPage(title: "Practica cada día", description: "Refuerza tu aprendizaje con recordatorios", icon: Icons.notifications_active),
-          _OnboardingPage(title: "Mide tu progreso", description: "Observa cómo avanzas cada día", icon: Icons.trending_up),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _currentPage == 2
-            ? () {
-                if (widget.onFinish != null) widget.onFinish!();
-              }
-            : _nextPage,
-        child: Icon(_currentPage == 2 ? Icons.check : Icons.arrow_forward),
-      ),
-    );
-  }
-}
-
-class _OnboardingPage extends StatelessWidget {
-  final String title; final String description; final IconData icon;
-  const _OnboardingPage({required this.title, required this.description, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(40), width: double.infinity,
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, size: 100, color: Colors.green),
-        const SizedBox(height: 30),
-        Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-        const SizedBox(height: 20),
-        Text(description, style: const TextStyle(fontSize: 16), textAlign: TextAlign.center),
-      ]),
-    );
   }
 }
