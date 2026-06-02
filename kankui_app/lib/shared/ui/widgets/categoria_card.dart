@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
 import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
-import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
 
 /// Tarjeta de categoría de vocablos
 class CategoriaCard extends StatelessWidget {

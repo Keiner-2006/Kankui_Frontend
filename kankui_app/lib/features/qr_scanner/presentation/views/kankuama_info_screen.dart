@@ -5,7 +5,7 @@ import 'package:kankui_app/features/qr_scanner/data/repositories/kankuama_info_r
 class KankuamaInfoScreen extends StatefulWidget {
   final String qrCodeId;
 
-  const KankuamaInfoScreen({Key? key, required this.qrCodeId}) : super(key: key);
+  const KankuamaInfoScreen({super.key, required this.qrCodeId});
 
   @override
   State<KankuamaInfoScreen> createState() => _KankuamaInfoScreenState();
@@ -35,12 +35,12 @@ class _KankuamaInfoScreenState extends State<KankuamaInfoScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               CircularProgressIndicator(color: Colors.brown),
               SizedBox(height: 20),
               Text('Descifrando el conocimiento...', style: TextStyle(color: Colors.brown)),

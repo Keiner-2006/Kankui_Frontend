@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/lessons_controller.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
 import 'package:kankui_app/features/quiz/domain/models/pregunta_quiz_model.dart';
 import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart';
+import 'package:kankui_app/shared/data/local/progress_repository.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
-import 'package:kankui_app/shared/data/local/models_local.dart';
+import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'package:kankui_app/shared/ui/widgets/opcion_respuesta_widget.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
 
@@ -27,8 +31,10 @@ class QuizQuestionScreen extends StatefulWidget {
   State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
-class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTickerProviderStateMixin {
+class _QuizQuestionScreenState extends State<QuizQuestionScreen>
+    with SingleTickerProviderStateMixin {
   final QuizRepository _quizRepository = QuizRepository();
+  final ProgressRepository _progressRepo = Get.find();
   late List<PreguntaQuizModel> _preguntas;
   late List<int?> _respuestasUsuario;
   late int _preguntaIndex;
@@ -144,16 +150,14 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                       _buildPista(pregunta.pista!),
 
                     // Resultado
-                    if (_mostrandoResultado)
-                      _buildResultadoPregunta(pregunta),
+                    if (_mostrandoResultado) _buildResultadoPregunta(pregunta),
                   ],
                 ),
               ),
             ),
 
             // Botón siguiente
-            if (_respondida)
-              _buildBotonSiguiente(),
+            if (_respondida) _buildBotonSiguiente(),
           ],
         ),
       ),
@@ -208,9 +212,10 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                   ? 'Palabra Kankuama → Significado'
                   : 'Significado → Palabra Kankuama',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: pregunta.tipo == TipoPreguntaQuiz.kankuamaASignificado
-                        ? AppColors.verdeSelva
-                        : AppColors.terracota,
+                    color:
+                        pregunta.tipo == TipoPreguntaQuiz.kankuamaASignificado
+                            ? AppColors.verdeSelva
+                            : AppColors.terracota,
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -224,7 +229,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                   color: AppColors.terracota.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.help_rounded,
                   color: AppColors.terracota,
                   size: 24,
@@ -283,7 +288,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
       ),
       child: Row(
         children: [
-          Icon(Icons.lightbulb_outline_rounded, color: AppColors.doradoSol),
+          const Icon(Icons.lightbulb_outline_rounded,
+              color: AppColors.doradoSol),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -325,7 +331,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
                 Text(
                   acierto ? '¡Correcto!' : 'Incorrecto',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: acierto ? AppColors.verdeSelva : AppColors.terracota,
+                        color: acierto
+                            ? AppColors.verdeSelva
+                            : AppColors.terracota,
                         fontWeight: FontWeight.bold,
                       ),
                 ),
@@ -391,7 +399,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
     });
   }
 
-  void _siguientePregunta() {
+  Future<void> _siguientePregunta() async {
     if (_preguntaIndex < _preguntas.length - 1) {
       setState(() {
         _preguntaIndex++;
@@ -402,11 +410,11 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
         _timerController.forward();
       });
     } else {
-      _finalizarQuiz();
+      await _finalizarQuiz();
     }
   }
 
-  void _finalizarQuiz() {
+  Future<void> _finalizarQuiz() async {
     _timerController.stop();
 
     final respuestasValidas = _respuestasUsuario.where((r) => r != null).length;
@@ -423,7 +431,7 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
       'porcentaje': (correctas / _preguntas.length * 100).round(),
     };
 
-    _guardarProgreso(resultado);
+    await _guardarProgreso(resultado);
 
     if (!mounted) return;
 
@@ -442,10 +450,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
     mostroResumen.then((value) {
       if (value == true && mounted) {
         Get.until((route) =>
-          route.settings.name == '/lessons' ||
-          route.settings.name == '/home' ||
-          route.settings.name == '/'
-        );
+            route.settings.name == '/lessons' ||
+            route.settings.name == '/home' ||
+            route.settings.name == '/');
       }
     });
   }
@@ -453,8 +460,22 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
   Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
     try {
       final userRepo = UserRepository();
+      final usuario = await userRepo.getCurrentUser();
+      if (usuario == null) return;
 
-      await userRepo.guardarResultadoQuiz(widget.reto.id, resultado);
+      await _progressRepo.saveResultadoQuiz(
+        usuarioId: usuario.id,
+        retoId: widget.reto.id,
+        retoNombre: widget.reto.nombre,
+        respuestas: _respuestasUsuario.whereType<int>().toList(),
+        puntaje: resultado['puntos'] as int,
+      );
+      await _progressRepo.completarReto(
+        usuarioId: usuario.id,
+        retoId: widget.reto.id,
+        retoNombre: widget.reto.nombre,
+        puntosObtenidos: resultado['puntos'] as int,
+      );
 
       final correctas = resultado['correctas'] as int;
       final xpGanado = correctas * 10;
@@ -465,6 +486,19 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen> with SingleTick
       if (widget.reto.leccionId != null) {
         await userRepo.completarLeccion(widget.reto.leccionId!);
       }
+
+      if (Get.isRegistered<HomeController>()) {
+        await Get.find<HomeController>().refreshLocalProgress();
+      }
+      if (Get.isRegistered<LessonsController>()) {
+        await Get.find<LessonsController>().refreshLocalProgress();
+      }
+
+      unawaited(
+        SyncService(Supabase.instance.client)
+            .syncProgressToSupabase()
+            .catchError((_) {}),
+      );
     } catch (e) {
       debugPrint('Error guardando progreso del quiz: $e');
     }
@@ -620,8 +654,8 @@ class QuizResumenScreen extends StatelessWidget {
                       final pregunta = preguntas[index];
                       final respuestaUsuario = respuestasUsuario[index];
                       final respondida = respuestaUsuario != null;
-                      final correcta =
-                          respondida && respuestaUsuario == pregunta.respuestaCorrectaIndex;
+                      final correcta = respondida &&
+                          respuestaUsuario == pregunta.respuestaCorrectaIndex;
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
@@ -632,8 +666,10 @@ class QuizResumenScreen extends StatelessWidget {
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: correcta
-                                    ? AppColors.verdeSelva.withValues(alpha: 0.2)
-                                    : AppColors.terracota.withValues(alpha: 0.2),
+                                    ? AppColors.verdeSelva
+                                        .withValues(alpha: 0.2)
+                                    : AppColors.terracota
+                                        .withValues(alpha: 0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -661,7 +697,10 @@ class QuizResumenScreen extends StatelessWidget {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Tu respuesta: ${respondida ? pregunta.opciones[respuestaUsuario] : "No respondida"}',
-                                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
                                           color: respondida
                                               ? (correcta
                                                   ? AppColors.verdeSelva

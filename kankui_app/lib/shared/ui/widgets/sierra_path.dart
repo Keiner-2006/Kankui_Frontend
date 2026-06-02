@@ -6,14 +6,13 @@ import 'package:kankui_app/features/learning/domain/models/categoria_model.dart'
 /// Widget que muestra el camino de la Sierra Nevada
 /// Representación visual del progreso del usuario a través de las lecciones
 class SierraPath extends StatelessWidget {
-  
-  final int leccionesCompletadas;
   final List<CategoriaModel> categorias;
+  final Map<String, double> progresoCategorias;
 
   const SierraPath({
-     super.key,
-    required this.leccionesCompletadas,
+    super.key,
     required this.categorias,
+    required this.progresoCategorias,
   });
 
   @override
@@ -22,7 +21,7 @@ class SierraPath extends StatelessWidget {
       height: 400,
       margin: const EdgeInsets.symmetric(horizontal: 20),
       child: CustomPaint(
-        painter: _SierraPathPainter(),
+        painter: _SierraPathPainter(progreso: _progresoTotal),
         child: Stack(
           children: [
             // Nodos de las lecciones
@@ -35,47 +34,70 @@ class SierraPath extends StatelessWidget {
 
   List<Widget> _buildLessonNodes(BuildContext context) {
     final nodes = <Widget>[];
-    
+
     // Si no hay categorías de la DB, usar las hardcoded por defecto para no romper el UI
-    final List<Map<String, dynamic>> lecciones = categorias.isEmpty 
-      ? _leccionesData 
-      : categorias.asMap().entries.map((entry) {
-          int index = entry.key;
-          CategoriaModel cat = entry.value;
-          // Reutilizar coordenadas del camino predefinido si es posible
-          final defaultData = index < _leccionesData.length ? _leccionesData[index] : _leccionesData.last;
-          return {
-            'id': cat.id,
-            'nombre': cat.nombre,
-            'icono': cat.icono ?? 'espiral',
-            'x': defaultData['x'],
-            'y': defaultData['y'],
-          };
-        }).toList();
+    final List<Map<String, dynamic>> lecciones = categorias.isEmpty
+        ? _leccionesData
+        : categorias.asMap().entries.map((entry) {
+            int index = entry.key;
+            CategoriaModel cat = entry.value;
+            // Reutilizar coordenadas del camino predefinido si es posible
+            final defaultData = index < _leccionesData.length
+                ? _leccionesData[index]
+                : _leccionesData.last;
+            return {
+              'id': cat.id,
+              'nombre': cat.nombre,
+              'icono': cat.icono ?? 'espiral',
+              'x': defaultData['x'],
+              'y': defaultData['y'],
+            };
+          }).toList();
 
-   for (int i = 0; i < lecciones.length; i++) {
-  final leccion = lecciones[i];
+    for (int i = 0; i < lecciones.length; i++) {
+      final leccion = lecciones[i];
+      final categoriaId = leccion['id'] as String;
+      final isCompletada = _isCategoriaCompletada(categoriaId);
+      final isDesbloqueada =
+          i == 0 || _isCategoriaCompletada(lecciones[i - 1]['id'] as String);
+      final isCurrent = isDesbloqueada && !isCompletada;
 
-  final isCompletada = i < leccionesCompletadas;
-  final isDesbloqueada = i <= leccionesCompletadas;
-  final isCurrent = i == leccionesCompletadas;
-
-  nodes.add(
-    Positioned(
-      left: leccion['x'] as double,
-      top: leccion['y'] as double,
-      child: _LessonNode(
-        nombre: leccion['nombre'] as String,
-        icono: leccion['icono'] as String,
-        isDesbloqueada: isDesbloqueada,
-        isCompletada: isCompletada,
-        isCurrent: isCurrent,
-        onTap: isDesbloqueada ? () {} : null,
-      ),
-    ),
-  );
-}
+      nodes.add(
+        Positioned(
+          left: leccion['x'] as double,
+          top: leccion['y'] as double,
+          child: _LessonNode(
+            nombre: leccion['nombre'] as String,
+            icono: leccion['icono'] as String,
+            isDesbloqueada: isDesbloqueada,
+            isCompletada: isCompletada,
+            isCurrent: isCurrent,
+            onTap: isDesbloqueada ? () {} : null,
+          ),
+        ),
+      );
+    }
     return nodes;
+  }
+
+  bool _isCategoriaCompletada(String categoriaId) {
+    return (progresoCategorias[categoriaId] ?? 0) >= 1;
+  }
+
+  double get _progresoTotal {
+    final total =
+        categorias.isEmpty ? _leccionesData.length : categorias.length;
+    if (total == 0) return 0;
+
+    final completadas =
+        (categorias.isEmpty ? _leccionesData : categorias).where((categoria) {
+      final id = categoria is CategoriaModel
+          ? categoria.id
+          : (categoria as Map<String, dynamic>)['id'] as String;
+      return _isCategoriaCompletada(id);
+    }).length;
+
+    return completadas / total;
   }
 }
 
@@ -211,6 +233,10 @@ class _LessonNode extends StatelessWidget {
 }
 
 class _SierraPathPainter extends CustomPainter {
+  final double progreso;
+
+  const _SierraPathPainter({required this.progreso});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -222,7 +248,27 @@ class _SierraPathPainter extends CustomPainter {
     // Dibujar el camino que conecta las lecciones
     final path = Path();
 
-    // Camino serpenteante que sube la sierra
+    _buildPath(path, size);
+
+    canvas.drawPath(path, paint);
+
+    final progressPaint = Paint()
+      ..color = AppColors.verdeSelva
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round;
+    for (final metric in path.computeMetrics()) {
+      canvas.drawPath(
+        metric.extractPath(0, metric.length * progreso.clamp(0, 1)),
+        progressPaint,
+      );
+    }
+
+    // Dibujar montañas de fondo
+    _drawMountains(canvas, size);
+  }
+
+  void _buildPath(Path path, Size size) {
     path.moveTo(size.width * 0.15 + 30, 50);
     path.quadraticBezierTo(
       size.width * 0.3,
@@ -248,11 +294,6 @@ class _SierraPathPainter extends CustomPainter {
       size.width * 0.35 + 30,
       310,
     );
-
-    canvas.drawPath(path, paint);
-
-    // Dibujar montañas de fondo
-    _drawMountains(canvas, size);
   }
 
   void _drawMountains(Canvas canvas, Size size) {
@@ -291,7 +332,9 @@ class _SierraPathPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SierraPathPainter oldDelegate) {
+    return oldDelegate.progreso != progreso;
+  }
 }
 
 // Datos de las lecciones para el mapa (Coordenadas predefinidas)

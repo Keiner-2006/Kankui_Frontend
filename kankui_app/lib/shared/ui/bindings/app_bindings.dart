@@ -8,6 +8,7 @@ import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart'
 import 'package:kankui_app/features/qr_scanner/data/repositories/kankuama_info_repository.dart';
 import 'package:kankui_app/shared/data/remote/supabase_service.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
+import 'package:kankui_app/shared/data/local/progress_repository.dart';
 import 'package:kankui_app/shared/services/auth_services.dart';
 import 'package:kankui_app/shared/services/docenteservices.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
@@ -32,6 +33,7 @@ class AppBindings extends Bindings {
     Get.put(DocenteService(), permanent: true);
     Get.put(AudioService(), permanent: true);
     Get.put(UserRepository(), permanent: true);
+    Get.put(ProgressRepository(), permanent: true);
 
     Get.lazyPut(() => CategoriaRepository(supabase));
     Get.lazyPut(() => UsuarioRepository(supabase));

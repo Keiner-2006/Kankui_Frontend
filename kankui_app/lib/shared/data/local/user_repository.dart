@@ -13,20 +13,32 @@ class UserRepository {
   /// Guardar usuario actual (al hacer login)
   Future<void> saveCurrentUser(UsuarioLocal usuario) async {
     final db = await _db.database;
-    
-    // Limpiar usuario anterior si existe (en orden correcto para evitar FOREIGN KEY)
-    await db.delete('resultado_quiz');
-    await db.delete('progreso_reto');
-    await db.delete('progreso_categoria');
-    await db.delete('estudiante');
-    await db.delete('maestro');
-    await db.delete('usuario');
-    
-    await db.insert(
-      'usuario',
-      usuario.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    final currentUser = await getCurrentUser();
+
+    // Mantener el progreso local cuando vuelve a ingresar el mismo usuario.
+    if (currentUser != null && currentUser.id != usuario.id) {
+      await db.delete('resultado_quiz');
+      await db.delete('progreso_reto');
+      await db.delete('progreso_categoria');
+      await db.delete('estudiante');
+      await db.delete('maestro');
+      await db.delete('usuario');
+    }
+
+    if (currentUser?.id == usuario.id) {
+      await db.update(
+        'usuario',
+        usuario.toMap(),
+        where: 'id = ?',
+        whereArgs: [usuario.id],
+      );
+    } else {
+      await db.insert(
+        'usuario',
+        usuario.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   /// Obtener usuario actual
@@ -58,11 +70,37 @@ class UserRepository {
   // ============================================
 
   /// Guardar datos del estudiante
-  Future<void> saveEstudiante(EstudianteLocal estudiante) async {
+  Future<void> saveEstudiante(
+    EstudianteLocal estudiante, {
+    bool preserveLocalProgress = false,
+  }) async {
     final db = await _db.database;
+    final local = preserveLocalProgress
+        ? await getEstudianteByUsuarioId(estudiante.usuarioId)
+        : null;
+    final estudianteToSave = local == null
+        ? estudiante
+        : EstudianteLocal(
+            id: estudiante.id,
+            usuarioId: estudiante.usuarioId,
+            curso: estudiante.curso,
+            grupo: estudiante.grupo,
+            promedio: estudiante.promedio,
+            pin: estudiante.pin,
+            maestroId: estudiante.maestroId,
+            xpTotal: local.xpTotal,
+            xpHoy: local.xpHoy,
+            rachaDias: local.rachaDias,
+            ultimaActividad: local.ultimaActividad,
+            leccionesCompletadasTotal: local.leccionesCompletadasTotal,
+            escaneosExitosos: local.escaneosExitosos,
+            leccionesDesbloqueadas: local.leccionesDesbloqueadas,
+            logrosDesbloqueados: local.logrosDesbloqueados,
+          );
+
     await db.insert(
       'estudiante',
-      estudiante.toMap(),
+      estudianteToSave.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -137,14 +175,15 @@ class UserRepository {
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    
+
     int nuevaRacha = estudiante.rachaDias;
-    
+
     if (estudiante.ultimaActividad != null) {
       final lastActivity = DateTime.parse(estudiante.ultimaActividad!);
-      final lastDate = DateTime(lastActivity.year, lastActivity.month, lastActivity.day);
+      final lastDate =
+          DateTime(lastActivity.year, lastActivity.month, lastActivity.day);
       final difference = today.difference(lastDate).inDays;
-      
+
       if (difference == 1) {
         // Dia consecutivo
         nuevaRacha = estudiante.rachaDias + 1;
@@ -193,7 +232,10 @@ class UserRepository {
       return estudiante; // Ya desbloqueada
     }
 
-    final nuevasDesbloqueadas = [...estudiante.leccionesDesbloqueadas, leccionId];
+    final nuevasDesbloqueadas = [
+      ...estudiante.leccionesDesbloqueadas,
+      leccionId
+    ];
     final updated = estudiante.copyWith(
       leccionesDesbloqueadas: nuevasDesbloqueadas,
     );
@@ -247,7 +289,8 @@ class UserRepository {
   // ============================================
 
   /// Guardar resultado de un quiz
-  Future<String> guardarResultadoQuiz(String retoId, Map<String, dynamic> resultado) async {
+  Future<String> guardarResultadoQuiz(
+      String retoId, Map<String, dynamic> resultado) async {
     final db = await _db.database;
     final usuario = await getCurrentUser();
     final id = '${DateTime.now().millisecondsSinceEpoch}_$retoId';

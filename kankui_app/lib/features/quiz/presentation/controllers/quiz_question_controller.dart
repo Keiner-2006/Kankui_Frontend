@@ -1,16 +1,22 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
+import 'package:kankui_app/features/learning/presentation/controllers/lessons_controller.dart';
 import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
 import 'package:kankui_app/features/quiz/domain/models/pregunta_quiz_model.dart';
 import 'package:kankui_app/features/quiz/data/repositories/quiz_repository.dart';
+import 'package:kankui_app/shared/data/local/progress_repository.dart';
 import 'package:kankui_app/shared/data/local/user_repository.dart';
+import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'package:kankui_app/shared/services/audio_service.dart';
 
 class QuizQuestionController extends GetxController
     with SingleGetTickerProviderMixin {
   final QuizRepository _quizRepository = Get.find();
   final UserRepository _userRepo = Get.find();
+  final ProgressRepository _progressRepo = Get.find();
   final AudioService _audioService = Get.find();
 
   late List<PreguntaQuizModel> preguntas;
@@ -114,16 +120,27 @@ class QuizQuestionController extends GetxController
   }
 
   Future<void> _guardarProgreso(Map<String, dynamic> resultado) async {
-    final resultadoId = await _userRepo.guardarResultadoQuiz(
-      reto.id,
-      resultado,
+    final usuario = await _userRepo.getCurrentUser();
+    if (usuario == null) return;
+
+    await _progressRepo.saveResultadoQuiz(
+      usuarioId: usuario.id,
+      retoId: reto.id,
+      retoNombre: reto.nombre,
+      respuestas: respuestasUsuario.whereType<int>().toList(),
+      puntaje: resultado['puntos'] as int,
+    );
+    await _progressRepo.completarReto(
+      usuarioId: usuario.id,
+      retoId: reto.id,
+      retoNombre: reto.nombre,
+      puntosObtenidos: resultado['puntos'] as int,
     );
 
     final correctas = resultado['correctas'] as int;
     final xpGanado = correctas * 10;
 
     await _userRepo.addXP(xpGanado);
-    await _userRepo.incrementarEscaneos();
 
     if (reto.leccionId != null) {
       try {
@@ -132,6 +149,19 @@ class QuizQuestionController extends GetxController
     }
 
     await _userRepo.updateRacha();
+
+    if (Get.isRegistered<HomeController>()) {
+      await Get.find<HomeController>().refreshLocalProgress();
+    }
+    if (Get.isRegistered<LessonsController>()) {
+      await Get.find<LessonsController>().refreshLocalProgress();
+    }
+
+    unawaited(
+      SyncService(Supabase.instance.client)
+          .syncProgressToSupabase()
+          .catchError((_) {}),
+    );
   }
 
   void confirmExit() {

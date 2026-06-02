@@ -72,21 +72,18 @@ class RetoQuizModel extends RetoModel {
   final bool aleatorio;
 
   RetoQuizModel({
-    required String id,
+    required super.id,
     String? nombre,
     required this.preguntasQuiz,
     this.tiempoLimiteMinutos,
     this.aleatorio = false,
     int? puntosMaximos,
-    int orden = 0,
-    String? leccionId,
+    super.orden,
+    super.leccionId,
   }) : super(
-          id: id,
           nombre: nombre ?? 'Reto Quiz (${preguntasQuiz.length} preguntas)',
           preguntas: const [],
           puntosMaximos: puntosMaximos ?? (preguntasQuiz.length * 10),
-          orden: orden,
-          leccionId: leccionId,
         );
 
   @override

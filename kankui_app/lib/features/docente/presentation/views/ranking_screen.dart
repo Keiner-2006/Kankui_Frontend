@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
-import 'package:kankui_app/features/docente/presentation/views/docente_screen.dart';
 import 'package:kankui_app/shared/services/sesionmanager.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
@@ -24,14 +23,14 @@ class _RankingScreenState extends State<RankingScreen> {
 
   // Niveles de sabiduría definidos localmente
   final List<_NivelSabiduria> _nivelesSabiduria = [
-    _NivelSabiduria(nivel: 1, nombre: 'Semilla',  xpRequerido: 0),
-    _NivelSabiduria(nivel: 2, nombre: 'Brote',    xpRequerido: 100),
-    _NivelSabiduria(nivel: 3, nombre: 'Raíz',     xpRequerido: 300),
-    _NivelSabiduria(nivel: 4, nombre: 'Hoja',     xpRequerido: 600),
-    _NivelSabiduria(nivel: 5, nombre: 'Flor',     xpRequerido: 1000),
-    _NivelSabiduria(nivel: 6, nombre: 'Fruto',    xpRequerido: 1500),
-    _NivelSabiduria(nivel: 7, nombre: 'Árbol',    xpRequerido: 2500),
-    _NivelSabiduria(nivel: 8, nombre: 'Bosque',   xpRequerido: 4000),
+    const _NivelSabiduria(nivel: 1, nombre: 'Semilla',  xpRequerido: 0),
+    const _NivelSabiduria(nivel: 2, nombre: 'Brote',    xpRequerido: 100),
+    const _NivelSabiduria(nivel: 3, nombre: 'Raíz',     xpRequerido: 300),
+    const _NivelSabiduria(nivel: 4, nombre: 'Hoja',     xpRequerido: 600),
+    const _NivelSabiduria(nivel: 5, nombre: 'Flor',     xpRequerido: 1000),
+    const _NivelSabiduria(nivel: 6, nombre: 'Fruto',    xpRequerido: 1500),
+    const _NivelSabiduria(nivel: 7, nombre: 'Árbol',    xpRequerido: 2500),
+    const _NivelSabiduria(nivel: 8, nombre: 'Bosque',   xpRequerido: 4000),
   ];
 
   @override
@@ -211,7 +210,7 @@ class _RankingScreenState extends State<RankingScreen> {
                             ),
                             child: Text(
                               '${_ranking.length} participantes',
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: AppColors.terracota,
                                 fontWeight: FontWeight.w500,
                               ),

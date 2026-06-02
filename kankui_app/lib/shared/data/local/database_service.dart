@@ -32,7 +32,7 @@ class DatabaseService {
 
     final db = await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -228,6 +228,61 @@ class DatabaseService {
       // Version 2: Añadir columna image_url a la tabla palabra
       await db.execute('ALTER TABLE palabra ADD COLUMN image_url TEXT');
     }
+
+    if (oldVersion < 3) {
+      await _createProgressTablesIfMissing(db);
+    }
+  }
+
+  Future<void> _createProgressTablesIfMissing(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS progreso_categoria (
+        id TEXT PRIMARY KEY,
+        usuario_id TEXT NOT NULL,
+        categoria_id TEXT NOT NULL,
+        lecciones_completadas INTEGER DEFAULT 0,
+        total_lecciones INTEGER DEFAULT 0,
+        ultima_actividad TEXT,
+        synced INTEGER DEFAULT 0,
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+        FOREIGN KEY (categoria_id) REFERENCES categoria(id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS progreso_reto (
+        id TEXT PRIMARY KEY,
+        usuario_id TEXT NOT NULL,
+        reto_id TEXT NOT NULL,
+        completado INTEGER DEFAULT 0,
+        puntos_obtenidos INTEGER DEFAULT 0,
+        fecha_completado TEXT,
+        synced INTEGER DEFAULT 0,
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+        FOREIGN KEY (reto_id) REFERENCES reto(id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS resultado_quiz (
+        id TEXT PRIMARY KEY,
+        usuario_id TEXT NOT NULL,
+        reto_id TEXT NOT NULL,
+        respuestas TEXT DEFAULT '[]',
+        puntaje INTEGER DEFAULT 0,
+        fecha TEXT,
+        synced INTEGER DEFAULT 0,
+        FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+        FOREIGN KEY (reto_id) REFERENCES reto(id)
+      )
+    ''');
+
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_progreso_cat_usuario ON progreso_categoria(usuario_id)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_progreso_reto_usuario ON progreso_reto(usuario_id)');
+    await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_resultado_usuario ON resultado_quiz(usuario_id)');
   }
 
   /// Limpiar toda la base de datos (para logout o reset)

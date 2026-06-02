@@ -10,7 +10,7 @@ import 'package:get/get.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/kankuama_info_screen.dart';
 
 class QrScannerScreen extends StatefulWidget {
-  const QrScannerScreen({Key? key}) : super(key: key);
+  const QrScannerScreen({super.key});
 
   @override
   State<QrScannerScreen> createState() => _QrScannerScreenState();
@@ -83,8 +83,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         final nombreBuscado = categoria.nombre.toLowerCase();
         String idEstatico = nombreBuscado.replaceAll(' ', '_');
         
-        if (nombreBuscado.contains('saludo')) idEstatico = 'saludos';
-        else if (nombreBuscado.contains('familia')) idEstatico = 'familia';
+        if (nombreBuscado.contains('saludo')) {
+          idEstatico = 'saludos';
+        } else if (nombreBuscado.contains('familia')) idEstatico = 'familia';
         else if (nombreBuscado.contains('naturaleza')) idEstatico = 'naturaleza';
         else if (nombreBuscado.contains('objeto') || nombreBuscado.contains('sagrado')) idEstatico = 'objetos_sagrados';
         else if (nombreBuscado.contains('numero') || nombreBuscado.contains('número')) idEstatico = 'numeros';
@@ -164,10 +165,10 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
               const SizedBox(height: 16),
               const Divider(),
               const SizedBox(height: 16),
-              Text(
+              const Text(
                 '¡Has descubierto una palabra de la lengua Kankuama! Recuérdala bien.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: Color(0xFF2C1A0E), height: 1.5),
+                style: TextStyle(fontSize: 14, color: Color(0xFF2C1A0E), height: 1.5),
               ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
@@ -324,31 +325,31 @@ class _ScannerOverlayPainter extends CustomPainter {
       ..strokeWidth = 4.0;
 
     // Dibujar esquinas
-    final double cornerLength = 30.0;
+    const double cornerLength = 30.0;
 
     // Top-Left
     canvas.drawLine(scanWindow.topLeft,
-        scanWindow.topLeft + Offset(cornerLength, 0), borderPaint);
+        scanWindow.topLeft + const Offset(cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.topLeft,
-        scanWindow.topLeft + Offset(0, cornerLength), borderPaint);
+        scanWindow.topLeft + const Offset(0, cornerLength), borderPaint);
 
     // Top-Right
     canvas.drawLine(scanWindow.topRight,
-        scanWindow.topRight + Offset(-cornerLength, 0), borderPaint);
+        scanWindow.topRight + const Offset(-cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.topRight,
-        scanWindow.topRight + Offset(0, cornerLength), borderPaint);
+        scanWindow.topRight + const Offset(0, cornerLength), borderPaint);
 
     // Bottom-Left
     canvas.drawLine(scanWindow.bottomLeft,
-        scanWindow.bottomLeft + Offset(cornerLength, 0), borderPaint);
+        scanWindow.bottomLeft + const Offset(cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.bottomLeft,
-        scanWindow.bottomLeft + Offset(0, -cornerLength), borderPaint);
+        scanWindow.bottomLeft + const Offset(0, -cornerLength), borderPaint);
 
     // Bottom-Right
     canvas.drawLine(scanWindow.bottomRight,
-        scanWindow.bottomRight + Offset(-cornerLength, 0), borderPaint);
+        scanWindow.bottomRight + const Offset(-cornerLength, 0), borderPaint);
     canvas.drawLine(scanWindow.bottomRight,
-        scanWindow.bottomRight + Offset(0, -cornerLength), borderPaint);
+        scanWindow.bottomRight + const Offset(0, -cornerLength), borderPaint);
   }
 
   @override

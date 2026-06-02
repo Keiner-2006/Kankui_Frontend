@@ -5,7 +5,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/features/learning/data/repositories/categoria_repository.dart';
 import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
-import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
 
 class ScannerController extends GetxController {
   final CategoriaRepository _categoriaRepo = Get.find();
@@ -60,8 +59,9 @@ class ScannerController extends GetxController {
         final nombreBuscado = categoria.nombre.toLowerCase();
         String idEstatico = nombreBuscado.replaceAll(' ', '_');
 
-        if (nombreBuscado.contains('saludo')) idEstatico = 'saludos';
-        else if (nombreBuscado.contains('familia')) idEstatico = 'familia';
+        if (nombreBuscado.contains('saludo')) {
+          idEstatico = 'saludos';
+        } else if (nombreBuscado.contains('familia')) idEstatico = 'familia';
         else if (nombreBuscado.contains('naturaleza')) idEstatico = 'naturaleza';
         else if (nombreBuscado.contains('objeto') || nombreBuscado.contains('sagrado')) idEstatico = 'objetos_sagrados';
         else if (nombreBuscado.contains('numero') || nombreBuscado.contains('número')) idEstatico = 'numeros';

@@ -8,12 +8,28 @@ class ProgressRepository {
   final DatabaseService _db = DatabaseService();
   final Uuid _uuid = const Uuid();
 
+  Future<void> _ensureRetoExists(
+    String retoId, {
+    String? retoNombre,
+  }) async {
+    final db = await _db.database;
+    await db.insert(
+      'reto',
+      RetoLocal(
+        id: retoId,
+        nombre: retoNombre ?? 'Quiz',
+      ).toMap(),
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
   // ============================================
   // PROGRESO CATEGORIA
   // ============================================
 
   /// Obtener todo el progreso de categorias del usuario
-  Future<List<ProgresoCategoriaLocal>> getProgresoCategoriasUsuario(String usuarioId) async {
+  Future<List<ProgresoCategoriaLocal>> getProgresoCategoriasUsuario(
+      String usuarioId) async {
     final db = await _db.database;
     final maps = await db.query(
       'progreso_categoria',
@@ -24,7 +40,8 @@ class ProgressRepository {
   }
 
   /// Obtener progreso de una categoria especifica
-  Future<ProgresoCategoriaLocal?> getProgresoCategoria(String usuarioId, String categoriaId) async {
+  Future<ProgresoCategoriaLocal?> getProgresoCategoria(
+      String usuarioId, String categoriaId) async {
     final db = await _db.database;
     final maps = await db.query(
       'progreso_categoria',
@@ -44,7 +61,7 @@ class ProgressRepository {
   }) async {
     final db = await _db.database;
     final existing = await getProgresoCategoria(usuarioId, categoriaId);
-    
+
     final progreso = ProgresoCategoriaLocal(
       id: existing?.id ?? _uuid.v4(),
       usuarioId: usuarioId,
@@ -65,10 +82,11 @@ class ProgressRepository {
   }
 
   /// Guardar progreso desde Supabase
-  Future<void> saveProgresoCategoriasFromSupabase(List<ProgresoCategoriaLocal> progresos) async {
+  Future<void> saveProgresoCategoriasFromSupabase(
+      List<ProgresoCategoriaLocal> progresos) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var progreso in progresos) {
       batch.insert(
         'progreso_categoria',
@@ -76,7 +94,7 @@ class ProgressRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -85,7 +103,8 @@ class ProgressRepository {
   // ============================================
 
   /// Obtener todo el progreso de retos del usuario
-  Future<List<ProgresoRetoLocal>> getProgresoRetosUsuario(String usuarioId) async {
+  Future<List<ProgresoRetoLocal>> getProgresoRetosUsuario(
+      String usuarioId) async {
     final db = await _db.database;
     final maps = await db.query(
       'progreso_reto',
@@ -96,7 +115,8 @@ class ProgressRepository {
   }
 
   /// Obtener progreso de un reto especifico
-  Future<ProgresoRetoLocal?> getProgresoReto(String usuarioId, String retoId) async {
+  Future<ProgresoRetoLocal?> getProgresoReto(
+      String usuarioId, String retoId) async {
     final db = await _db.database;
     final maps = await db.query(
       'progreso_reto',
@@ -112,10 +132,12 @@ class ProgressRepository {
     required String usuarioId,
     required String retoId,
     required int puntosObtenidos,
+    String? retoNombre,
   }) async {
     final db = await _db.database;
+    await _ensureRetoExists(retoId, retoNombre: retoNombre);
     final existing = await getProgresoReto(usuarioId, retoId);
-    
+
     // Solo actualizar si es mejor puntaje o no existe
     if (existing != null && existing.puntosObtenidos >= puntosObtenidos) {
       return existing;
@@ -147,10 +169,11 @@ class ProgressRepository {
   }
 
   /// Guardar progreso de retos desde Supabase
-  Future<void> saveProgresoRetosFromSupabase(List<ProgresoRetoLocal> progresos) async {
+  Future<void> saveProgresoRetosFromSupabase(
+      List<ProgresoRetoLocal> progresos) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var progreso in progresos) {
       batch.insert(
         'progreso_reto',
@@ -158,7 +181,7 @@ class ProgressRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -172,9 +195,11 @@ class ProgressRepository {
     required String retoId,
     required List<int> respuestas,
     required int puntaje,
+    String? retoNombre,
   }) async {
     final db = await _db.database;
-    
+    await _ensureRetoExists(retoId, retoNombre: retoNombre);
+
     final resultado = ResultadoQuizLocal(
       id: _uuid.v4(),
       usuarioId: usuarioId,
@@ -190,7 +215,8 @@ class ProgressRepository {
   }
 
   /// Obtener historial de resultados de un usuario
-  Future<List<ResultadoQuizLocal>> getResultadosUsuario(String usuarioId) async {
+  Future<List<ResultadoQuizLocal>> getResultadosUsuario(
+      String usuarioId) async {
     final db = await _db.database;
     final maps = await db.query(
       'resultado_quiz',
@@ -202,7 +228,8 @@ class ProgressRepository {
   }
 
   /// Obtener resultados de un reto especifico
-  Future<List<ResultadoQuizLocal>> getResultadosByReto(String usuarioId, String retoId) async {
+  Future<List<ResultadoQuizLocal>> getResultadosByReto(
+      String usuarioId, String retoId) async {
     final db = await _db.database;
     final maps = await db.query(
       'resultado_quiz',
@@ -214,7 +241,8 @@ class ProgressRepository {
   }
 
   /// Obtener mejor resultado de un reto
-  Future<ResultadoQuizLocal?> getMejorResultado(String usuarioId, String retoId) async {
+  Future<ResultadoQuizLocal?> getMejorResultado(
+      String usuarioId, String retoId) async {
     final db = await _db.database;
     final maps = await db.query(
       'resultado_quiz',
@@ -228,10 +256,11 @@ class ProgressRepository {
   }
 
   /// Guardar resultados desde Supabase
-  Future<void> saveResultadosFromSupabase(List<ResultadoQuizLocal> resultados) async {
+  Future<void> saveResultadosFromSupabase(
+      List<ResultadoQuizLocal> resultados) async {
     final db = await _db.database;
     final batch = db.batch();
-    
+
     for (var resultado in resultados) {
       batch.insert(
         'resultado_quiz',
@@ -239,7 +268,7 @@ class ProgressRepository {
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
-    
+
     await batch.commit(noResult: true);
   }
 
@@ -332,25 +361,25 @@ class ProgressRepository {
   /// Obtener estadisticas generales del usuario
   Future<Map<String, dynamic>> getEstadisticasUsuario(String usuarioId) async {
     final db = await _db.database;
-    
+
     // Total retos completados
     final retosCompletados = await db.rawQuery('''
       SELECT COUNT(*) as count FROM progreso_reto 
       WHERE usuario_id = ? AND completado = 1
     ''', [usuarioId]);
-    
+
     // Promedio de puntaje
     final promedioPuntaje = await db.rawQuery('''
       SELECT AVG(puntaje) as promedio FROM resultado_quiz 
       WHERE usuario_id = ?
     ''', [usuarioId]);
-    
+
     // Total quizzes realizados
     final totalQuizzes = await db.rawQuery('''
       SELECT COUNT(*) as count FROM resultado_quiz 
       WHERE usuario_id = ?
     ''', [usuarioId]);
-    
+
     // Categorias con progreso
     final categoriasProgreso = await db.rawQuery('''
       SELECT COUNT(*) as count FROM progreso_categoria 
