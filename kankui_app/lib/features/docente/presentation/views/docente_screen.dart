@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kankui_app/features/docente/data/repositories/estudiante_repository.dart';
+import 'package:get/get.dart';
+import 'package:kankui_app/features/docente/presentation/controllers/docente_controller.dart';
 import 'package:kankui_app/features/docente/presentation/views/inscribirestudiante_screen.dart';
-import 'package:kankui_app/shared/services/service_locator.dart';
-import 'package:kankui_app/shared/data/remote/supabase_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/recursos_qr_screen.dart';
 
 // ============================================================
@@ -52,20 +49,6 @@ class Estudiante {
 }
 
 // ============================================================
-// DATOS DE EJEMPLO (reemplazar con llamadas a API/BLoC/Provider)
-// ============================================================
-
-const _profesorEjemplo = Profesor(
-  nombre: 'Laura',
-  apellido: 'Martínez',
-  correo: 'laura@iedemo.edu.co',
-  institucion: 'I.E. Indígena Atánquez',
-);
-
-// Los datos mock se encuentran ahora dentro de _cargarEstudiantes()
-// en el State de AdminPanelPage. No se necesita lista global.
-
-// ============================================================
 // PALETA DE COLORES
 // ============================================================
 
@@ -81,7 +64,6 @@ class _AppColors {
   static const pinBackground = Color(0xFFF0EBE5);
   static const pinText = Color(0xFF3A7D44);
   static const searchBorder = Color(0xFFE0D5CB);
-  static const divider = Color(0xFFF0E8DF);
 }
 
 // ============================================================
@@ -107,211 +89,80 @@ class DocenteScreen extends StatefulWidget {
 }
 
 class _DocenteScreenState extends State<DocenteScreen> {
-  int _currentIndex = 0;
-  
-  /// Lista maestra cargada desde la "API" (o mock).
-  List<Estudiante> _todosLosEstudiantes = [];
-
-  /// Lista derivada que se muestra según el filtro de búsqueda.
-  List<Estudiante> _estudiantesFiltrados = [];
-
-  /// Indica si la carga inicial está en progreso.
-  bool _cargando = true;
-
-  /// Mensaje de error en caso de fallo de red/API (null = sin error).
-  String? _error;
-
-  final TextEditingController _searchController = TextEditingController();
-
-  // ── Ciclo de vida ────────────────────────────────────────────
+  late final DocenteController controller;
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(_filtrar);
-    _cargarEstudiantes(); // carga al entrar a la pantalla
+    controller = Get.find<DocenteController>();
   }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // ── Carga de datos ───────────────────────────────────────────
-
-  /// Carga la lista de estudiantes asociados al profesor.
-  ///
-  /// AHORA usa datos mock con un retardo simulado.
-  ///
-  /// PARA CONECTAR A UNA API REAL, reemplaza el bloque marcado con
-  /// `// [API REAL]` por tu llamada HTTP/repositorio, por ejemplo:
-  ///
-  /// ```dart
-  /// final response = await estudianteRepository.fetchPorProfesor(
-  ///   profesorId: widget.profesor.id,
-  /// );
-  /// ```
-  Future<void> _cargarEstudiantes() async {
-    print('🚀 Iniciando carga de estudiantes...');
-
-    setState(() {
-      _cargando = true;
-      _error = null;
-    });
-
-    try {
-      final repo = EstudianteRepository(Supabase.instance.client);
-
-      print('📡 Llamando a Supabase...');
-      final data = await repo.obtenerTodos();
-
-      print('📦 Datos crudos recibidos: $data');
-      print('📊 Cantidad: ${data.length}');
-
-      final datos = data.map((e) {
-        print('👤 Procesando estudiante: ${e.toJson()}');
-
-        return Estudiante(
-          id: e.id,
-          nombre: e.nombre ?? 'Sin nombre',
-          apellido: e.apellido ?? '',
-          pin: e.pin ?? '0000',
-          identificacion: e.identificacion,
-        );
-      }).toList();
-
-      print('✅ Datos mapeados: $datos');
-
-      if (!mounted) return;
-
-      setState(() {
-        _todosLosEstudiantes = datos;
-        _estudiantesFiltrados = datos;
-        _cargando = false;
-      });
-
-      print('🎉 UI actualizada correctamente');
-    } catch (e, stack) {
-      print('❌ ERROR COMPLETO: $e');
-      print('📍 STACKTRACE: $stack');
-
-      if (!mounted) return;
-
-      setState(() {
-        _error = 'Error cargando estudiantes: $e';
-        _cargando = false;
-      });
-    }
-  }
-
-  // ── Agregar estudiante ────────────────────────────────────────
-
-  /// Agrega un nuevo estudiante usando Supabase.
-  Future<void> _agregarEstudiante(
-      String nombre, String apellido, String pin) async {
-    const uuid = Uuid();
-    final nuevoUsuario = {
-      'id': uuid.v4(),
-      'nombre': '$nombre $apellido',
-      'identificacion':
-            pin, // usa pin como identificación temporal (ahora es String)
-    };
-
-    try {
-      await locator<SupabaseService>().insertarUsuario(nuevoUsuario);
-      // Recargar lista después de agregar
-      await _cargarEstudiantes();
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Estudiante agregado exitosamente')),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al agregar estudiante: $e')),
-      );
-    }
-  }
-
-  // ── Búsqueda ─────────────────────────────────────────────────
-
-  /// Filtra sobre la lista maestra (_todosLosEstudiantes), no sobre la API.
-  void _filtrar() {
-    final query = _searchController.text.toLowerCase().trim();
-    setState(() {
-      _estudiantesFiltrados = _todosLosEstudiantes.where((e) {
-        return e.nombreCompleto.toLowerCase().contains(query) ||
-            e.id.contains(query);
-      }).toList();
-    });
-  }
-
-  // ── Build ─────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _AppColors.background,
-      body: SafeArea(
-        child: _currentIndex == 0 
-            ? _buildEstudiantesTab() 
-            : const RecursosQrScreen(),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
+    return Obx(() {
+      final currentIndex = controller.currentTab.value;
+
+      return Scaffold(
+        backgroundColor: _AppColors.background,
+        body: SafeArea(
+          child: currentIndex == 0
+              ? _buildEstudiantesTab()
+              : const RecursosQrScreen(),
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-          selectedItemColor: _AppColors.accent,
-          unselectedItemColor: _AppColors.textSecondary,
-          backgroundColor: Colors.white,
-          type: BottomNavigationBarType.fixed,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.group_rounded),
-              activeIcon: Icon(Icons.group_rounded),
-              label: 'Estudiantes',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.qr_code_2_rounded),
-              activeIcon: Icon(Icons.qr_code_2_rounded),
-              label: 'Recursos QR',
-            ),
-          ],
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: BottomNavigationBar(
+            currentIndex: currentIndex,
+            onTap: controller.changeTab,
+            selectedItemColor: _AppColors.accent,
+            unselectedItemColor: _AppColors.textSecondary,
+            backgroundColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
+            selectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontSize: 12),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.group_rounded),
+                activeIcon: Icon(Icons.group_rounded),
+                label: 'Estudiantes',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.qr_code_2_rounded),
+                activeIcon: Icon(Icons.qr_code_2_rounded),
+                label: 'Recursos QR',
+              ),
+            ],
+          ),
         ),
-      ),
-      // ── FAB AGREGAR (Solo visible en Estudiantes) ─────────────
-      floatingActionButton: _currentIndex == 0 
-          ? _AddFab(
-              onPressed: widget.onAgregarEstudiante,
-              maestroId: widget.maestroId,
-            )
-          : null,
-    );
+        floatingActionButton: currentIndex == 0
+            ? _AddFab(
+                onPressed: widget.onAgregarEstudiante,
+                maestroId: widget.maestroId,
+              )
+            : null,
+      );
+    });
   }
 
   Widget _buildEstudiantesTab() {
     return RefreshIndicator(
-      onRefresh: _cargarEstudiantes,
+      onRefresh: controller.cargarEstudiantes,
       color: _AppColors.accent,
       child: Column(
         children: [
           _Header(institucion: widget.profesor.institucion),
-          _SearchBar(controller: _searchController),
+          _SearchBar(controller: controller.searchController),
           _ListHeader(
-            cantidad: _estudiantesFiltrados.length,
+            cantidad: controller.estudiantesFiltrados.length,
             onExportar: widget.onExportar,
           ),
           Expanded(child: _buildBody()),
@@ -320,15 +171,14 @@ class _DocenteScreenState extends State<DocenteScreen> {
     );
   }
 
-  /// Decide qué mostrar según el estado de carga.
   Widget _buildBody() {
-    if (_cargando) {
+    if (controller.cargando.value) {
       return const Center(
         child: CircularProgressIndicator(color: _AppColors.accent),
       );
     }
 
-    if (_error != null) {
+    if (controller.error.value != null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -339,13 +189,13 @@ class _DocenteScreenState extends State<DocenteScreen> {
                   size: 48, color: _AppColors.textSecondary),
               const SizedBox(height: 16),
               Text(
-                _error!,
+                controller.error.value!,
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: _AppColors.textSecondary),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: _cargarEstudiantes,
+                onPressed: controller.cargarEstudiantes,
                 icon: const Icon(Icons.refresh_rounded),
                 label: const Text('Reintentar'),
                 style: ElevatedButton.styleFrom(
@@ -361,7 +211,7 @@ class _DocenteScreenState extends State<DocenteScreen> {
       );
     }
 
-    return _EstudiantesList(estudiantes: _estudiantesFiltrados);
+    return _EstudiantesList(estudiantes: controller.estudiantesFiltrados);
   }
 }
 
@@ -545,7 +395,7 @@ class _ListHeader extends StatelessWidget {
 // ============================================================
 
 class _EstudiantesList extends StatelessWidget {
-  final List<Estudiante> estudiantes;
+  final List<Map<String, dynamic>> estudiantes;
 
   const _EstudiantesList({required this.estudiantes});
 
@@ -580,13 +430,20 @@ class _EstudiantesList extends StatelessWidget {
 // ============================================================
 
 class _EstudianteCard extends StatelessWidget {
-  final Estudiante estudiante;
+  final Map<String, dynamic> estudiante;
   final VoidCallback? onTap;
 
   const _EstudianteCard({required this.estudiante, this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final nombre = (estudiante['nombre'] ?? 'Sin nombre').toString();
+    final apellido = (estudiante['apellido'] ?? '').toString();
+    final nombreCompleto = '$nombre $apellido'.trim();
+    final identificacion = (estudiante['identificacion'] ?? '').toString();
+    final pin = (estudiante['pin'] ?? '0000').toString();
+    final avatarUrl = estudiante['avatarUrl']?.toString();
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -605,7 +462,7 @@ class _EstudianteCard extends StatelessWidget {
         child: Row(
           children: [
             // Avatar
-            _Avatar(nombre: estudiante.nombre, url: estudiante.avatarUrl),
+            _Avatar(nombre: nombre, url: avatarUrl),
             const SizedBox(width: 14),
 
             // Nombre + ID
@@ -614,7 +471,7 @@ class _EstudianteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    estudiante.nombreCompleto,
+                    nombreCompleto,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -623,7 +480,7 @@ class _EstudianteCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    'ID: ${estudiante.identificacion}',
+                    'ID: $identificacion',
                     style: const TextStyle(
                       fontSize: 12,
                       color: _AppColors.textSecondary,
@@ -634,7 +491,7 @@ class _EstudianteCard extends StatelessWidget {
             ),
 
             // PIN badge
-            _PinBadge(pin: estudiante.pinFormateado),
+            _PinBadge(pin: 'K-$pin'),
           ],
         ),
       ),
