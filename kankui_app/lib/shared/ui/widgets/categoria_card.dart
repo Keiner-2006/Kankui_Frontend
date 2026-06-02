@@ -188,6 +188,12 @@ class CategoriaCard extends StatelessWidget {
         return KankuiIcons.mochila(size: size, color: color);
       case 'hoja':
         return KankuiIcons.hoja(size: size, color: color);
+      case 'naturaleza':
+        return KankuiIcons.naturaleza(size: size, color: color);
+      case 'animales':
+        return KankuiIcons.animales(size: size, color: color);
+      case 'colores':
+        return KankuiIcons.colores(size: size, color: color);
       default:
         return KankuiIcons.espiral(size: size, color: color);
     }

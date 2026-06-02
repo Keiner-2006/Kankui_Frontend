@@ -127,7 +127,7 @@ class LessonDetailController extends GetxController {
             ),
             const SizedBox(height: 16),
             Text(
-              'Has completado la lección de ${'\${categoria.nombre}'}',
+              'Has completado la lección de ${categoria.nombre}',
               style: Get.textTheme.bodyLarge
                   ?.copyWith(color: AppColors.textoMedio),
               textAlign: TextAlign.center,
@@ -151,13 +151,13 @@ class LessonDetailController extends GetxController {
                     size: 28,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '+${'\${vocablos.length * 10}'} XP',
-                    style: Get.textTheme.headlineMedium?.copyWith(
-                      color: AppColors.doradoSol,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                   Text(
+                     '+${vocablos.length * 10} XP',
+                     style: Get.textTheme.headlineMedium?.copyWith(
+                       color: AppColors.doradoSol,
+                       fontWeight: FontWeight.bold,
+                     ),
+                   ),
                 ],
               ),
             ),

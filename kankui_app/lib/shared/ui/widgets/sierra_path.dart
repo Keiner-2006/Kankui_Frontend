@@ -269,31 +269,22 @@ class _SierraPathPainter extends CustomPainter {
   }
 
   void _buildPath(Path path, Size size) {
-    path.moveTo(size.width * 0.15 + 30, 50);
-    path.quadraticBezierTo(
-      size.width * 0.3,
-      80,
-      size.width * 0.55 + 30,
-      90,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      100,
-      size.width * 0.25 + 30,
-      160,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.1,
-      180,
-      size.width * 0.6 + 30,
-      230,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.85,
-      250,
-      size.width * 0.35 + 30,
-      310,
-    );
+    for (int i = 0; i < _leccionesData.length; i++) {
+      final node = _leccionesData[i];
+      final x = node['x'] as double;
+      final y = node['y'] as double;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        final prev = _leccionesData[i - 1];
+        final prevX = prev['x'] as double;
+        final prevY = prev['y'] as double;
+        final midX = (prevX + x) / 2;
+        final midY = (prevY + y) / 2 + 15;
+        path.quadraticBezierTo(prevX + 20, prevY + 30, midX, midY);
+        path.quadraticBezierTo(x - 20, y - 10, x, y);
+      }
+    }
   }
 
   void _drawMountains(Canvas canvas, Size size) {
@@ -337,48 +328,49 @@ class _SierraPathPainter extends CustomPainter {
   }
 }
 
-// Datos de las lecciones para el mapa (Coordenadas predefinidas)
+// Datos de las lecciones para el mapa (Coordenadas alineadas con el path painter)
+// El path se construye con size.width relativo, estos valores están calibrados para ~360px de ancho
 final List<Map<String, dynamic>> _leccionesData = [
   {
     'id': 'leccion_1',
     'nombre': 'Saludos',
     'icono': 'espiral',
-    'x': 20.0,
-    'y': 20.0
+    'x': 70.0,
+    'y': 40.0
   },
   {
     'id': 'leccion_2',
     'nombre': 'Familia',
     'icono': 'mochila',
-    'x': 180.0,
-    'y': 60.0
+    'x': 220.0,
+    'y': 85.0
   },
   {
     'id': 'leccion_3',
     'nombre': 'Naturaleza',
     'icono': 'sierra',
-    'x': 50.0,
-    'y': 130.0
+    'x': 110.0,
+    'y': 150.0
   },
   {
     'id': 'leccion_4',
     'nombre': 'Sagrado',
     'icono': 'poporo',
-    'x': 200.0,
-    'y': 200.0
+    'x': 240.0,
+    'y': 220.0
   },
   {
     'id': 'leccion_5',
-    'nombre': 'Números',
+    'nombre': 'Numeros',
     'icono': 'tejido',
-    'x': 80.0,
-    'y': 280.0
+    'x': 150.0,
+    'y': 300.0
   },
   {
     'id': 'leccion_6',
     'nombre': 'Colores',
     'icono': 'hoja',
-    'x': 220.0,
-    'y': 330.0
+    'x': 300.0,
+    'y': 340.0
   },
 ];
