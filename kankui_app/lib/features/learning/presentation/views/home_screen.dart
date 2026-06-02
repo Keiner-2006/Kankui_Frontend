@@ -8,6 +8,7 @@ import 'package:kankui_app/shared/ui/widgets/custom_bottom_nav.dart';
 import 'package:kankui_app/shared/ui/widgets/user_stats_card.dart';
 import 'package:kankui_app/shared/services/sesionmanager.dart';
 import 'package:kankui_app/shared/data/user_progress.dart';
+import 'package:kankui_app/shared/services/audio_service.dart';
 import 'package:kankui_app/features/learning/presentation/views/lessons_screen.dart'
     as legacy;
 import 'package:kankui_app/features/qr_scanner/presentation/views/qr_scanner_screen.dart'
@@ -161,6 +162,7 @@ class _HomeContent extends StatelessWidget {
   }
 
   Widget _buildPalabraDelDia(BuildContext context) {
+    final controller = Get.find<HomeController>();
     return Container(
       margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(20),
@@ -193,13 +195,13 @@ class _HomeContent extends StatelessWidget {
                   ?.copyWith(color: Colors.white.withValues(alpha: 0.9))),
         ]),
         const SizedBox(height: 16),
-        Text('Kunsamunu',
+        Text(controller.wordOfTheDay,
             style: Theme.of(context)
                 .textTheme
                 .displayMedium
                 ?.copyWith(color: Colors.white, fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
-        Text('/kun-sa-mu-nu/',
+        Text(controller.transcription,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.8),
                 fontStyle: FontStyle.italic)),
@@ -209,7 +211,7 @@ class _HomeContent extends StatelessWidget {
             decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12)),
-            child: Text('Sierra Nevada - El corazón del mundo',
+            child: Text(controller.meaning,
                 style: Theme.of(context)
                     .textTheme
                     .bodyMedium
@@ -217,7 +219,10 @@ class _HomeContent extends StatelessWidget {
         const SizedBox(height: 16),
         Row(children: [
           _buildActionButton(context,
-              icon: Icons.volume_up_rounded, label: 'Escuchar', onTap: () {}),
+              icon: Icons.volume_up_rounded, label: 'Escuchar', onTap: () {
+            final url = 'https://translate.google.com/translate_tts?ie=UTF-8&q=${Uri.encodeComponent(controller.wordOfTheDay)}&tl=es&client=tw-ob';
+            audioService.play(url);
+          }),
           const SizedBox(width: 12),
           _buildActionButton(context,
               icon: Icons.bookmark_outline_rounded,

@@ -20,10 +20,63 @@ class HomeController extends GetxController {
   final userProgress = Rxn<UserProgress>();
   final progresoCategorias = <String, double>{}.obs;
 
+  // Palabra del día
+  final List<Map<String, String>> _palabrasDelDia = [
+    {
+      'word': 'Kunsamunu',
+      'transcription': '/kun-sa-mu-nu/',
+      'meaning': 'Sierra Nevada - El corazón del mundo'
+    },
+    {
+      'word': 'Atánuch',
+      'transcription': '/a-tá-nuch/',
+      'meaning': 'La sagrada madre tierra'
+    },
+    {
+      'word': 'Koguía',
+      'transcription': '/ko-gú-i-a/',
+      'meaning': 'El espíritu guardián de la montaña'
+    },
+    {
+      'word': 'Yulúka',
+      'transcription': '/yu-lú-ka/',
+      'meaning': 'El canto que nace del corazón'
+    },
+    {
+      'word': 'Munekua',
+      'transcription': '/mu-ne-kua/',
+      'meaning': 'La sabiduría de los ancestros'
+    },
+    {
+      'word': 'Sekwá',
+      'transcription': '/sek-wá/',
+      'meaning': 'El fuego sagrado de la comunidad'
+    },
+    {
+      'word': 'Nunka',
+      'transcription': '/nun-ka/',
+      'meaning': 'El camino de la vida y el conocimiento'
+    },
+    {
+      'word': 'Tekua',
+      'transcription': '/te-kúa/',
+      'meaning': 'La fuerza que move el mundo'
+    }
+  ];
+
+  final _wordOfTheDay = ''.obs;
+  final _transcription = ''.obs;
+  final _meaning = ''.obs;
+
+  String get wordOfTheDay => _wordOfTheDay.value;
+  String get transcription => _transcription.value;
+  String get meaning => _meaning.value;
+
   @override
   void onInit() {
     super.onInit();
     _initializeUserProgress();
+    _initializePalabraDelDia();
     fetchData();
   }
 
@@ -41,6 +94,16 @@ class HomeController extends GetxController {
     } else {
       userProgress.value = const UserProgress();
     }
+  }
+
+  void _initializePalabraDelDia() {
+    final DateTime now = DateTime.now();
+    final int dayOfYear = now.difference(DateTime(now.year)).inDays + 1;
+    final int index = dayOfYear % _palabrasDelDia.length;
+    final Map<String, String> wordData = _palabrasDelDia[index];
+    _wordOfTheDay.value = wordData['word']!;
+    _transcription.value = wordData['transcription']!;
+    _meaning.value = wordData['meaning']!;
   }
 
   Future<void> fetchData() async {
