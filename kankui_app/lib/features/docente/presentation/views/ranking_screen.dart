@@ -4,6 +4,7 @@ import 'package:kankui_app/features/docente/presentation/controllers/ranking_con
 import 'package:kankui_app/shared/data/user_progress.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
+import 'package:kankui_app/shared/services/sesionmanager.dart';
 
 class RankingScreen extends StatefulWidget {
   final UserProgress userProgress;
@@ -407,8 +408,8 @@ class _RankingScreenState extends State<RankingScreen> {
 
   Widget _buildRankingItem(BuildContext context, int index) {
     final item = controller.ranking[index];
-    final currentUserId = item.usuarioId;
-    final isCurrentUser = currentUserId == currentUserId;
+    final loggedUserId = SessionManager().usuario?.id;
+    final isCurrentUser = item.usuarioId == loggedUserId;
     final position      = index + 1;
 
     final nombreFinal =
