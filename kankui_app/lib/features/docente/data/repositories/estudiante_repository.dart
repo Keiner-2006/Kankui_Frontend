@@ -145,6 +145,28 @@ class EstudianteRepository {
     }
   }
 
+  Future<List<Map<String, dynamic>>> obtenerTodosRaw() async {
+    try {
+      final response = await supabase.from(_tableName).select('''
+            id,
+            usuario_id,
+            pin,
+            curso,
+            xp_total,
+            usuario:usuario_id (
+              id,
+              nombre,
+              apellido,
+              identificacion
+            )
+          ''');
+
+          return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<List<Estudiante>> obtenerTodos() async {
     try {
       final response = await supabase.from(_tableName).select('''
@@ -161,14 +183,10 @@ class EstudianteRepository {
             )
           ''');
 
-      print('📦 RAW RESPONSE: $response');
-
       return response
           .map<Estudiante>((json) => Estudiante.fromJson(json))
           .toList();
-    } catch (e, stack) {
-      print('❌ ERROR EN REPO: $e');
-      print(stack);
+    } catch (e) {
       return [];
     }
   }

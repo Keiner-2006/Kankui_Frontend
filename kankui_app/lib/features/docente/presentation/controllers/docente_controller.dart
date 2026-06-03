@@ -14,6 +14,11 @@ class DocenteController extends GetxController {
   final currentTab = 0.obs;
 
   final searchController = TextEditingController();
+  final gradoFiltro = Rxn<String>();
+
+  final gradosDisponibles = const [
+    'Sexto', 'Septimo', 'Octavo', 'Noveno', 'Décimo', 'Once',
+  ];
 
   @override
   void onInit() {
@@ -33,15 +38,18 @@ class DocenteController extends GetxController {
     error.value = null;
 
     try {
-      final data = await _repo.obtenerTodos();
-      final datos = data.map((e) {
-        return {
-          'id': e.id,
-          'nombre': e.nombre ?? 'Sin nombre',
-          'apellido': e.apellido ?? '',
-          'pin': e.pin ?? '0000',
-          'identificacion': e.identificacion,
+      final rawData = await _repo.obtenerTodosRaw();
+      final datos = rawData.map((row) {
+        final usuario = row['usuario'] as Map<String, dynamic>?;
+
+        return <String, dynamic>{
+          'id': row['id'],
+          'nombre': usuario?['nombre'] ?? 'Sin nombre',
+          'apellido': usuario?['apellido'] ?? '',
+          'pin': row['pin'] ?? '0000',
+          'identificacion': usuario?['identificacion']?.toString() ?? '',
           'avatarUrl': null,
+          'grado': row['curso']?.toString(),
         };
       }).toList();
 
@@ -55,8 +63,15 @@ class DocenteController extends GetxController {
     }
   }
 
+  void cambiarGradoFiltro(String? grado) {
+    gradoFiltro.value = grado;
+    filter();
+  }
+
   void filter() {
     final query = searchController.text.toLowerCase().trim();
+    final grado = gradoFiltro.value;
+
     estudiantesFiltrados.assignAll(
       todosLosEstudiantes.where((e) {
         final nombre = (e['nombre'] ?? '').toString().toLowerCase();
@@ -66,9 +81,13 @@ class DocenteController extends GetxController {
             (e['identificacion'] ?? '').toString().toLowerCase();
         final nombreCompleto = '$nombre $apellido';
 
-        return nombreCompleto.contains(query) ||
+        final matchesSearch = nombreCompleto.contains(query) ||
             id.contains(query) ||
             identificacion.contains(query);
+
+        final matchesGrado = grado == null || e['grado'] == grado;
+
+        return matchesSearch && matchesGrado;
       }).toList(),
     );
   }

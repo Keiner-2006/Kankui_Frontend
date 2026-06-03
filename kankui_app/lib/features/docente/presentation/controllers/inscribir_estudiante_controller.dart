@@ -23,7 +23,7 @@ class NuevoEstudianteResult {
 
 const List<String> gradosDisponibles = [
   'Preescolar', 'Primero', 'Segundo', 'Tercero', 'Cuarto', 'Quinto',
-  'Sexto', 'Septimo', 'Octavo', 'Noveno', 'Decimo', 'Once',
+  'Sexto', 'Septimo', 'Octavo', 'Noveno', 'Décimo', 'Once',
 ];
 
 class InscribirEstudianteController extends GetxController {

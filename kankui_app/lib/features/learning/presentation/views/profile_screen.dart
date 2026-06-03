@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kankui_app/features/learning/presentation/controllers/home_controller.dart';
+import 'package:kankui_app/features/quiz/presentation/controllers/retos_estudiante_controller.dart';
+import 'package:kankui_app/features/quiz/presentation/views/retos_estudiante_screen.dart' as retos_screen;
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
 import 'package:kankui_app/shared/data/user_progress.dart';
@@ -25,6 +27,9 @@ class ProfileScreen extends StatelessWidget {
 
             // Estadísticas detalladas
             SliverToBoxAdapter(child: _buildEstadisticas(context)),
+
+            // Mis Retos
+            SliverToBoxAdapter(child: _buildRetos(context)),
 
             // Sección de configuración
             SliverToBoxAdapter(child: _buildConfiguracion(context)),
@@ -293,6 +298,72 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildRetos(BuildContext context) {
+    final retosController = Get.find<RetosEstudianteController>();
+    return Obx(() {
+      final pendientes = retosController.retosPendientes.length;
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const retos_screen.RetosEstudianteScreen(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(24),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.terracota.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: KankuiIcons.mochila(size: 28, color: AppColors.terracota),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Mis Retos',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textoOscuro,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      pendientes > 0
+                          ? '$pendientes reto${pendientes == 1 ? '' : 's'} pendiente${pendientes == 1 ? '' : 's'}'
+                          : 'Todos tus retos están completados',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textoClaro,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  color: AppColors.textoClaro),
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   Widget _buildConfiguracion(BuildContext context) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kankui_app/features/docente/presentation/controllers/docente_controller.dart';
 import 'package:kankui_app/features/docente/presentation/views/inscribirestudiante_screen.dart';
+import 'package:kankui_app/features/docente/presentation/views/retos_screen.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/recursos_qr_screen.dart';
 
 // ============================================================
@@ -107,7 +108,9 @@ class _DocenteScreenState extends State<DocenteScreen> {
         body: SafeArea(
           child: currentIndex == 0
               ? _buildEstudiantesTab()
-              : const RecursosQrScreen(),
+              : currentIndex == 1
+                  ? const RetosScreen()
+                  : const RecursosQrScreen(),
         ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
@@ -136,6 +139,11 @@ class _DocenteScreenState extends State<DocenteScreen> {
                 label: 'Estudiantes',
               ),
               BottomNavigationBarItem(
+                icon: Icon(Icons.quiz_rounded),
+                activeIcon: Icon(Icons.quiz_rounded),
+                label: 'Retos',
+              ),
+              BottomNavigationBarItem(
                 icon: Icon(Icons.qr_code_2_rounded),
                 activeIcon: Icon(Icons.qr_code_2_rounded),
                 label: 'Recursos QR',
@@ -158,6 +166,11 @@ class _DocenteScreenState extends State<DocenteScreen> {
         children: [
           const _Header(institucion: 'Institución Educativa'),
           _SearchBar(controller: controller.searchController),
+          _GradoFilter(
+            grados: controller.gradosDisponibles,
+            seleccionado: controller.gradoFiltro.value,
+            onChanged: controller.cambiarGradoFiltro,
+          ),
           _ListHeader(
             cantidad: controller.estudiantesFiltrados.length,
           ),
@@ -345,13 +358,94 @@ class _SearchBar extends StatelessWidget {
 }
 
 // ============================================================
+// WIDGET: Filtro por grado escolar
+// ============================================================
+
+class _GradoFilter extends StatelessWidget {
+  final List<String> grados;
+  final String? seleccionado;
+  final void Function(String?) onChanged;
+
+  const _GradoFilter({
+    required this.grados,
+    required this.seleccionado,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _ChipGrado(
+              label: 'Todos',
+              selected: seleccionado == null,
+              onTap: () => onChanged(null),
+            ),
+            const SizedBox(width: 8),
+            ...grados.map((g) => Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _ChipGrado(
+                    label: g,
+                    selected: seleccionado == g,
+                    onTap: () => onChanged(g),
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChipGrado extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ChipGrado({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? _AppColors.accent : _AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? _AppColors.accent : _AppColors.searchBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : _AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
 // WIDGET: Fila con contador de estudiantes y botón Exportar
 // ============================================================
 
 class _ListHeader extends StatelessWidget {
   final int cantidad;
 
-  const _ListHeader({required this.cantidad, super.key});
+  const _ListHeader({required this.cantidad});
 
   @override
   Widget build(BuildContext context) {
@@ -435,6 +529,7 @@ class _EstudianteCard extends StatelessWidget {
     final identificacion = (estudiante['identificacion'] ?? '').toString();
     final pin = (estudiante['pin'] ?? '0000').toString();
     final avatarUrl = estudiante['avatarUrl']?.toString();
+    final grado = estudiante['grado']?.toString();
 
     return GestureDetector(
       onTap: onTap,
@@ -478,6 +573,24 @@ class _EstudianteCard extends StatelessWidget {
                       color: _AppColors.textSecondary,
                     ),
                   ),
+                  if (grado != null && grado.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _AppColors.accentLight.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        grado,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: _AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

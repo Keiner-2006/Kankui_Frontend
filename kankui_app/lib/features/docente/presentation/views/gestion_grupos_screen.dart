@@ -166,9 +166,7 @@ class _GestionGruposScreenState extends State<GestionGruposScreen> {
                   border: OutlineInputBorder(),
                 ),
                 items: const [
-                  'Preescolar', 'Primero', 'Segundo', 'Tercero',
-                  'Cuarto', 'Quinto', 'Sexto', 'Septimo',
-                  'Octavo', 'Noveno', 'Decimo', 'Once',
+                  'Sexto', 'Septimo', 'Octavo', 'Noveno', 'Décimo', 'Once',
                 ]
                     .map((g) => DropdownMenuItem(value: g, child: Text(g)))
                     .toList(),

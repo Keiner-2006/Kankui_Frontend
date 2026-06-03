@@ -8,9 +8,11 @@ import 'package:kankui_app/features/learning/presentation/views/lessons_screen.d
 import 'package:kankui_app/features/learning/presentation/views/lesson_detail_screen.dart';
 import 'package:kankui_app/features/quiz/presentation/views/quiz_screen.dart';
 import 'package:kankui_app/features/quiz/presentation/views/quiz_question_screen.dart';
-import 'package:kankui_app/features/quiz/domain/models/reto_model.dart';
+import 'package:kankui_app/features/quiz/domain/models/reto_model.dart' as quiz;
+import 'package:kankui_app/features/docente/domain/models/reto_model.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/views/scanner_screen.dart';
 import 'package:kankui_app/features/docente/presentation/views/docente_screen.dart';
+import 'package:kankui_app/features/quiz/presentation/views/responder_reto_screen.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/shared/services/service_locator.dart';
@@ -66,12 +68,16 @@ class KankuiApp extends StatelessWidget {
         GetPage(name: '/quiz-question', page: () {
           final args = Get.arguments as Map<String, dynamic>;
           return QuizQuestionScreen(
-            reto: args['reto'] as RetoQuizModel,
+            reto: args['reto'] as quiz.RetoQuizModel,
             categoriaNombre: args['categoriaNombre'] as String?,
           );
         }),
         GetPage(name: '/scanner', page: () => const ScannerScreen()),
         GetPage(name: '/docente', page: () => DocenteScreen(profesor: Get.arguments as Profesor)),
+        GetPage(name: '/responder-reto', page: () {
+          final reto = Get.arguments as RetoModel;
+          return ResponderRetoScreen(reto: reto);
+        }),
       ],
     );
   }

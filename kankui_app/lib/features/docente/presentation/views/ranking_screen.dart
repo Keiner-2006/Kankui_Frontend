@@ -121,21 +121,28 @@ class _RankingScreenState extends State<RankingScreen> {
                                 .headlineMedium
                                 ?.copyWith(color: AppColors.textoOscuro),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.terracota.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '${controller.ranking.length} participantes',
-                              style: const TextStyle(
-                                color: AppColors.terracota,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
+                           Expanded(
+                             child: Container(
+                               padding: const EdgeInsets.symmetric(
+                                   horizontal: 12, vertical: 6),
+                               decoration: BoxDecoration(
+                                 color: AppColors.terracota.withValues(alpha: 0.1),
+                                 borderRadius: BorderRadius.circular(20),
+                               ),
+                               child: Align(
+                                 alignment: Alignment.centerRight,
+                                 child: Text(
+                                   '${controller.ranking.length} participantes',
+                                   overflow: TextOverflow.ellipsis,
+                                   maxLines: 1,
+                                   style: const TextStyle(
+                                     color: AppColors.terracota,
+                                     fontWeight: FontWeight.w500,
+                                   ),
+                                 ),
+                               ),
+                             ),
+                           ),
                         ],
                       ),
                     ),

@@ -43,7 +43,7 @@ const List<String> _gradosDisponibles = [
   'Septimo',
   'Octavo',
   'Noveno',
-  'Decimo',
+  'Décimo',
   'Once',
 ];
 

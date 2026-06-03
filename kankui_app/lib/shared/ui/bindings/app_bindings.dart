@@ -19,6 +19,7 @@ import 'package:kankui_app/features/learning/presentation/controllers/lessons_co
 import 'package:kankui_app/features/learning/presentation/controllers/lesson_detail_controller.dart';
 import 'package:kankui_app/features/quiz/presentation/controllers/quiz_controller.dart';
 import 'package:kankui_app/features/quiz/presentation/controllers/quiz_question_controller.dart';
+import 'package:kankui_app/features/quiz/presentation/controllers/retos_estudiante_controller.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/controllers/scanner_controller.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/controllers/recursos_qr_controller.dart';
 import 'package:kankui_app/features/qr_scanner/presentation/controllers/kankuama_info_controller.dart';
@@ -27,6 +28,7 @@ import 'package:kankui_app/features/docente/presentation/controllers/ranking_con
 import 'package:kankui_app/features/docente/presentation/controllers/inscribir_estudiante_controller.dart';
 import 'package:kankui_app/features/docente/presentation/controllers/grupo_controller.dart';
 import 'package:kankui_app/features/docente/presentation/controllers/reto_grupo_controller.dart';
+import 'package:kankui_app/features/docente/presentation/controllers/retos_controller.dart';
 import 'package:kankui_app/features/docente/presentation/controllers/progreso_grupo_controller.dart';
 
 class AppBindings extends Bindings {
@@ -63,6 +65,8 @@ class AppBindings extends Bindings {
     Get.lazyPut(() => InscribirEstudianteController());
     Get.lazyPut(() => GrupoController());
     Get.lazyPut(() => RetoGrupoController());
+    Get.lazyPut(() => RetosController());
     Get.lazyPut(() => ProgresoGrupoController());
+    Get.lazyPut(() => RetosEstudianteController());
   }
 }

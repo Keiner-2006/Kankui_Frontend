@@ -86,18 +86,20 @@ class CategoriaCard extends StatelessWidget {
                             color: AppColors.cremaOscuro,
                             borderRadius: BorderRadius.circular(3),
                           ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: progreso,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: _getGradientColors(),
-                                ),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                          ),
+                           child: FractionallySizedBox(
+                             alignment: Alignment.centerLeft,
+                             widthFactor: progreso,
+                             child: ClipRRect(
+                               borderRadius: BorderRadius.circular(3),
+                               child: Container(
+                                 decoration: BoxDecoration(
+                                   gradient: LinearGradient(
+                                     colors: _getGradientColors(),
+                                   ),
+                                 ),
+                               ),
+                             ),
+                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
