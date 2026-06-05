@@ -36,7 +36,11 @@ class AudioService {
       debugPrint('[AudioService] Reproduciendo: $url');
 
       await _player.stop();
-      await _player.play(UrlSource(url));
+      if (url.contains('://')) {
+        await _player.play(UrlSource(url));
+      } else {
+        await _player.play(DeviceFileSource(url));
+      }
 
       return true;
     } catch (e) {

@@ -20,6 +20,8 @@ dependencies:
   mobile_scanner: ^7.2.0
   qr_flutter: ^4.1.0
   audioplayers: ^5.0.0  # Reproducción de audios
+  path_provider: ^2.1.0  # Directorios del dispositivo
+  dio: ^5.4.0  # Descarga de archivos con progreso
 
   flutter_local_notifications: ^17.0.0
 

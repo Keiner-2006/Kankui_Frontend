@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:kankui_app/shared/services/notificacion_service.dart';
 import 'package:kankui_app/features/auth/presentation/views/login_screen.dart';
 import 'package:kankui_app/features/learning/presentation/views/home_screen.dart';
@@ -18,6 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kankui_app/shared/services/service_locator.dart';
 import 'package:kankui_app/shared/data/sync/sync_service.dart';
 import 'package:kankui_app/features/auth/presentation/views/onboarding_screen.dart';
+import 'package:kankui_app/features/auth/presentation/views/download_progress_screen.dart';
 import 'shared/ui/bindings/app_bindings.dart';
 import 'shared/core/constants/app_constants.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -92,6 +94,24 @@ class Root extends StatefulWidget {
 
 class _RootState extends State<Root> {
   bool _showOnboarding = true;
+  bool _showDownload = false;
+  bool _checkingPrefs = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkMediaStatus();
+  }
+
+  Future<void> _checkMediaStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final downloaded = prefs.getBool('media_downloaded') ?? false;
+    final skipped = prefs.getBool('media_skipped') ?? false;
+    setState(() {
+      _checkingPrefs = false;
+      _showDownload = !downloaded && !skipped;
+    });
+  }
 
   void _finishOnboarding() {
     setState(() {
@@ -99,11 +119,36 @@ class _RootState extends State<Root> {
     });
   }
 
+  void _finishDownload() {
+    setState(() {
+      _showDownload = false;
+    });
+  }
+
+  void _skipDownload() {
+    setState(() {
+      _showDownload = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_checkingPrefs) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     if (_showOnboarding) {
       return OnboardingScreen(
         onFinish: _finishOnboarding,
+      );
+    }
+
+    if (_showDownload) {
+      return DownloadProgressScreen(
+        onComplete: _finishDownload,
+        onSkip: _skipDownload,
       );
     }
 

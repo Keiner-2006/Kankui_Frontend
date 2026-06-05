@@ -6,6 +6,7 @@ import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
 import 'package:kankui_app/features/learning/presentation/controllers/lessons_controller.dart';
 import 'package:kankui_app/shared/ui/widgets/categoria_card.dart';
 import 'package:kankui_app/shared/data/local/palabra_local.dart';
+import 'package:kankui_app/shared/services/media_download_service.dart';
 
 class LessonsScreen extends GetView<LessonsController> {
   const LessonsScreen({super.key});
@@ -45,7 +46,8 @@ class LessonsScreen extends GetView<LessonsController> {
                       final vocablos = data.map((e) => Vocablo(
                         id: e['id'], palabra: e['termino'], significado: e['traduccion'],
                         fonetica: e['pronunciacion'], categoria: e['categoria_id'],
-                        audioPath: e['audio_url'], imagePath: e['image_url'],
+                        audioPath: MediaDownloadService.resolveAudioSync(e['id'], e['audio_url']),
+                        imagePath: MediaDownloadService.resolveImageSync(e['id'], e['image_url']),
                         descripcionCultural: null, enRecuperacion: false,
                       )).toList();
                       Get.toNamed('/lesson-detail', arguments: {'categoria': categoria, 'vocablos': vocablos});
@@ -73,9 +75,17 @@ class LessonsScreen extends GetView<LessonsController> {
   }
 
   Widget _buildProgresoGeneral(BuildContext context) {
-    final totalVocablos = VocablosData.vocablos.length;
-    final aprendidos = (controller.userProgress.value?.leccionesCompletadas ?? 0) * 3;
-    final porcentaje = (aprendidos / totalVocablos).clamp(0.0, 1.0);
+    int aprendidos = 0;
+    int totalVocablos = 0;
+    for (var cat in controller.categorias) {
+      final progreso = controller.progresoCategorias[cat.id] ?? 0.0;
+      aprendidos += (progreso * cat.totalPalabras).round();
+      totalVocablos += cat.totalPalabras;
+    }
+    if (totalVocablos == 0) {
+      totalVocablos = VocablosData.vocablos.length;
+    }
+    final porcentaje = totalVocablos > 0 ? (aprendidos / totalVocablos).clamp(0.0, 1.0) : 0.0;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(20),

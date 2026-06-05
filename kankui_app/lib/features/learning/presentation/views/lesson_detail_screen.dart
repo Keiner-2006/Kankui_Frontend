@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:kankui_app/shared/ui/theme/app_theme.dart';
@@ -5,6 +6,7 @@ import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
 import 'package:kankui_app/features/learning/domain/models/categoria_model.dart';
 import 'package:kankui_app/shared/data/seed/vocablos_data.dart';
 import 'package:kankui_app/features/learning/presentation/controllers/lesson_detail_controller.dart';
+import 'package:kankui_app/shared/services/media_download_service.dart';
 
 class LessonDetailScreen extends GetView<LessonDetailController> {
   const LessonDetailScreen({super.key});
@@ -266,18 +268,9 @@ class LessonDetailScreen extends GetView<LessonDetailController> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (vocablo.imagePath != null && vocablo.imagePath!.isNotEmpty)
-            Container(
-              width: 200,
-              height: 200,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(24),
-                image: DecorationImage(
-                  image: NetworkImage(vocablo.imagePath!),
-                  fit: BoxFit.contain,
-                ),
-              ),
+            _MediaImage(
+              palabraId: vocablo.id,
+              imageUrl: vocablo.imagePath!,
             )
           else
             Container(
@@ -406,6 +399,62 @@ class LessonDetailScreen extends GetView<LessonDetailController> {
           const Spacer(),
           Text(vocablo.palabra, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.terracota, fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+}
+
+class _MediaImage extends StatefulWidget {
+  final String palabraId;
+  final String imageUrl;
+
+  const _MediaImage({
+    required this.palabraId,
+    required this.imageUrl,
+  });
+
+  @override
+  State<_MediaImage> createState() => _MediaImageState();
+}
+
+class _MediaImageState extends State<_MediaImage> {
+  final _key = GlobalKey();
+  bool _useLocal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLocal();
+  }
+
+  Future<void> _checkLocal() async {
+    final exists = await MediaDownloadService.imageExists(widget.palabraId);
+    if (mounted) {
+      setState(() {
+        _useLocal = exists;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dir = MediaDownloadService.cachedBaseDir;
+    final localPath = dir != null ? '$dir/${widget.palabraId}.png' : null;
+
+    return Container(
+      key: _key,
+      width: 200,
+      height: 200,
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(24),
+        image: DecorationImage(
+          image: _useLocal && localPath != null
+              ? FileImage(File(localPath)) as ImageProvider
+              : NetworkImage(widget.imageUrl),
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

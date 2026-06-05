@@ -97,7 +97,7 @@ class QuizQuestionController extends GetxController
     final respuestasValidas = respuestasUsuario.where((r) => r != null).length;
     final correctas = _quizRepository.calcularRespuestasCorrectas(
       preguntas,
-      respuestasUsuario.where((r) => r != null).cast<int>().toList(),
+      respuestasUsuario,
     );
 
     final resultado = {

@@ -1,48 +1,63 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:kankui_app/features/auth/presentation/controllers/onboarding_controller.dart';
 
-class OnboardingScreen extends GetView<OnboardingController> {
-  final VoidCallback? onFinish;
+class OnboardingScreen extends StatefulWidget {
+  final VoidCallback onFinish;
 
-  const OnboardingScreen({super.key, this.onFinish});
+  const OnboardingScreen({super.key, required this.onFinish});
+
+  @override
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _controller = PageController();
+  int currentPage = 0;
+
+  void nextPage() {
+    if (currentPage < 2) {
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeIn,
+      );
+    } else {
+      finishOnboarding();
+    }
+  }
+
+  void finishOnboarding() {
+    widget.onFinish();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: PageView(
-        onPageChanged: controller.goToPage,
+        controller: _controller,
+        onPageChanged: (index) {
+          setState(() => currentPage = index);
+        },
         children: const [
           _OnboardingPage(
-            title: 'Bienvenido a Kankui',
-            description: 'Aprende vocabulario de forma divertida',
+            title: "Bienvenido a Kankui",
+            description: "Aprende vocabulario de forma divertida",
             icon: Icons.school,
           ),
           _OnboardingPage(
-            title: 'Practica cada dia',
-            description: 'Refuerza tu aprendizaje con recordatorios',
+            title: "Practica cada día",
+            description: "Refuerza tu aprendizaje con recordatorios",
             icon: Icons.notifications_active,
           ),
           _OnboardingPage(
-            title: 'Mide tu progreso',
-            description: 'Observa como avanzas cada dia',
+            title: "Mide tu progreso",
+            description: "Observa cómo avanzas cada día",
             icon: Icons.trending_up,
           ),
         ],
       ),
-      floatingActionButton: Obx(
-        () => FloatingActionButton(
-          onPressed: controller.currentPage.value == 2
-              ? () {
-                  controller.finishOnboarding();
-                  onFinish?.call();
-                }
-              : controller.nextPage,
-          child: Icon(
-            controller.currentPage.value == 2
-                ? Icons.check
-                : Icons.arrow_forward,
-          ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: nextPage,
+        child: Icon(
+          currentPage == 2 ? Icons.check : Icons.arrow_forward,
         ),
       ),
     );
@@ -72,7 +87,10 @@ class _OnboardingPage extends StatelessWidget {
           const SizedBox(height: 30),
           Text(
             title,
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),

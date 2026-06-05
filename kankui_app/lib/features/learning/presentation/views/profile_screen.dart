@@ -7,6 +7,7 @@ import 'package:kankui_app/shared/ui/theme/app_theme.dart';
 import 'package:kankui_app/shared/ui/theme/kankui_icons.dart';
 import 'package:kankui_app/shared/data/user_progress.dart';
 import 'package:kankui_app/shared/services/sesionmanager.dart';
+import 'package:kankui_app/shared/services/media_download_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   final UserProgress userProgress;
@@ -428,11 +429,113 @@ class ProfileScreen extends StatelessWidget {
               Icons.chevron_right_rounded,
               color: AppColors.textoClaro,
             ),
-            onTap: () {},
+            onTap: () => _handleReDownload(context),
           ),
           const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+
+  void _handleReDownload(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.crema,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text(
+          'Descargar contenido',
+          style: TextStyle(
+            color: AppColors.textoOscuro,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: const Text(
+          '¿Deseas descargar nuevamente los audios e imágenes para uso sin conexión?',
+          style: TextStyle(color: AppColors.textoMedio),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.textoClaro),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _startDownload(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.terracota,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Descargar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _startDownload(BuildContext context) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: Colors.transparent,
+          content: StreamBuilder<DownloadProgress>(
+            stream: MediaDownloadService.downloadAll(),
+            builder: (context, snapshot) {
+              final progress = snapshot.data?.fraction ?? 0;
+              final label = snapshot.data?.currentLabel ?? 'Descargando...';
+              final complete = snapshot.connectionState == ConnectionState.done;
+
+              if (complete) {
+                Future.microtask(() {
+                  if (ctx.mounted) Navigator.pop(ctx);
+                });
+              }
+
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.crema,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.download_rounded,
+                      size: 48,
+                      color: AppColors.terracota,
+                    ),
+                    const SizedBox(height: 16),
+                    LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 8,
+                      backgroundColor: AppColors.cremaOscuro,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppColors.terracota,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: AppColors.textoClaro,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
